@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 import os
+from pathlib import Path
 from routers import repositorios
 from routers import autenticacion
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,11 +32,14 @@ app.include_router(autenticacion.router)
 app.include_router(graphify.router)
 app.include_router(documentacion.router)
 
-app.mount(
-    "/graphify",
-    StaticFiles(directory="graphify-out"),
-    name="graphify"
-)
+graphify_dir = Path(__file__).resolve().parent / "graphify-out"
+
+if graphify_dir.is_dir():
+    app.mount(
+        "/graphify",
+        StaticFiles(directory=str(graphify_dir)),
+        name="graphify"
+    )
 
 @app.get("/")
 def home():
