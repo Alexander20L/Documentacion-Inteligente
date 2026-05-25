@@ -1,0 +1,18 @@
+<div class="pagina-documentacion">
+  <header class="cabecera">
+    <div>
+      <p class="etiqueta">Documentación técnica</p>
+      <h1>Resultado generado</h1>
+    </div>
+
+    <a routerLink="/historial-proyectos" class="boton-volver">
+      Volver al historial
+    </a>
+  </header>
+
+  <section class="tarjeta">
+    <p *ngIf="cargando">Cargando documentación...</p>
+
+    <pre *ngIf="!cargando">{{ documentacion }}</pre>
+  </section>
+</div>

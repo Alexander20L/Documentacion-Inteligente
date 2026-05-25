@@ -1,0 +1,60 @@
+<div class="pagina-auth">
+  <section class="panel-info">
+    <div class="marca">
+      <div class="logo">DG</div>
+      <span>DocuGraph IA</span>
+    </div>
+
+    <div class="contenido-info">
+      <p class="etiqueta">Documentación inteligente</p>
+      <h1>Convierte repositorios en documentación técnica clara.</h1>
+      <p>
+        Analiza proyectos con Graphify, conserva el historial y prepara la documentación
+        técnica asistida por IA.
+      </p>
+    </div>
+
+    <div class="estado">
+      <span></span>
+      Sistema académico en desarrollo
+    </div>
+  </section>
+
+  <section class="panel-formulario">
+    <form class="tarjeta-auth">
+      <div class="cabecera-formulario">
+        <h2>Iniciar sesión</h2>
+        <p>Accede a tu espacio de análisis documental.</p>
+      </div>
+
+      <div class="grupo">
+        <label>Correo electrónico</label>
+        <input
+          type="email"
+          placeholder="usuario@correo.com"
+          [(ngModel)]="correo"
+          name="correo"
+        />
+      </div>
+
+      <div class="grupo">
+        <label>Contraseña</label>
+        <input
+          type="password"
+          placeholder="Ingresa tu contraseña"
+          [(ngModel)]="contrasena"
+          name="contrasena"
+        />
+      </div>
+
+      <button type="button" class="boton-principal" (click)="login()">
+        Ingresar
+      </button>
+
+      <p class="enlace-auth">
+        ¿No tienes cuenta?
+        <a routerLink="/registro">Crear cuenta</a>
+      </p>
+    </form>
+  </section>
+</div>

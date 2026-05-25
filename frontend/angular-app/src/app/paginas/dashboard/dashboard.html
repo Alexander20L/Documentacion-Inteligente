@@ -1,0 +1,86 @@
+<div class="layout-dashboard">
+  <aside class="sidebar">
+    <div>
+      <div class="marca">
+        <div class="logo">DG</div>
+        <div>
+          <h2>DocuGraph IA</h2>
+          <p>Documentación técnica</p>
+        </div>
+      </div>
+
+      <div class="usuario">
+        <span>Sesión activa</span>
+        <strong>{{ usuario.nombre }}</strong>
+      </div>
+
+      <nav class="menu">
+        <a routerLink="/dashboard" class="activo">Dashboard</a>
+        <a routerLink="/analisis-proyecto">Analizar proyecto</a>
+        <a routerLink="/historial-proyectos">Historial de proyectos</a>
+      </nav>
+    </div>
+
+    <button class="boton-salir" (click)="cerrarSesion()">
+      Cerrar sesión
+    </button>
+  </aside>
+
+  <main class="contenido">
+    <header class="cabecera">
+      <div>
+        <p class="etiqueta">Panel principal</p>
+        <h1>Sistema de documentación inteligente</h1>
+        <p>
+          Administra análisis de repositorios, revisa resultados de Graphify y prepara documentación técnica asistida por IA.
+        </p>
+      </div>
+    </header>
+
+    <section class="metricas">
+      <article class="tarjeta-metrica">
+        <span>01</span>
+        <h3>Graphify</h3>
+        <p>Análisis estructural del repositorio mediante grafo técnico.</p>
+      </article>
+
+      <article class="tarjeta-metrica">
+        <span>02</span>
+        <h3>Supabase</h3>
+        <p>Persistencia de usuarios, proyectos e historial de análisis.</p>
+      </article>
+
+      <article class="tarjeta-metrica">
+        <span>03</span>
+        <h3>LangGraph</h3>
+        <p>Próxima fase para generación automática de documentación.</p>
+      </article>
+    </section>
+
+    <section class="acciones">
+      <div class="tarjeta principal">
+        <p class="etiqueta">Siguiente acción</p>
+        <h2>Analizar un nuevo proyecto</h2>
+        <p>
+          Sube un archivo ZIP del repositorio para generar los archivos base:
+          <strong>graph.json</strong> y <strong>GRAPH_REPORT.md</strong>.
+        </p>
+
+        <a routerLink="/analisis-proyecto" class="boton-principal">
+          Nuevo análisis
+        </a>
+      </div>
+
+      <div class="tarjeta secundaria">
+        <h2>Historial</h2>
+        <p>
+          Consulta los proyectos procesados, revisa sus reportes y accede a los archivos generados.
+        </p>
+
+        <a routerLink="/historial-proyectos" class="boton-secundario">
+          Ver historial
+        </a>
+      </div>
+    </section>
+  </main>
+</div>

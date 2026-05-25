@@ -1,0 +1,117 @@
+<div class="pagina-historial">
+  <header class="cabecera">
+    <div>
+      <p class="etiqueta">Historial</p>
+      <h1>Proyectos analizados</h1>
+      <p>
+        Consulta los repositorios procesados y accede a los archivos generados por Graphify.
+      </p>
+    </div>
+
+    <a routerLink="/dashboard" class="boton-volver">
+      Volver al dashboard
+    </a>
+  </header>
+
+  <section class="tarjeta">
+    <div class="tabla-contenedor">
+      <table *ngIf="!cargando && proyectos.length > 0">
+        <thead>
+          <tr>
+            <th>Repositorio</th>
+            <th>Estado</th>
+            <th>Fecha</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let proyecto of proyectos">
+            <td>
+              <div class="repositorio">
+                <div class="icono">ZIP</div>
+
+                <div>
+                  <strong>{{ proyecto.nombre_archivo }}</strong>
+                  <p>{{ proyecto.id_repositorio }}</p>
+                </div>
+              </div>
+            </td>
+
+            <td>
+              <span class="estado">
+                {{ proyecto.estado }}
+              </span>
+            </td>
+
+            <td>
+              {{ proyecto.creado_en | date:'short' }}
+            </td>
+
+            <td>
+              <div class="acciones">
+                <a
+                  *ngIf="proyecto.url_graph_json"
+                  [href]="proyecto.url_graph_json"
+                  target="_blank"
+                >
+                  JSON
+                </a>
+
+                <a
+                  *ngIf="proyecto.url_reporte"
+                  [href]="proyecto.url_reporte"
+                  target="_blank"
+                >
+                  Reporte
+                </a>
+
+                <a
+                  *ngIf="proyecto.url_graph_html"
+                  [href]="proyecto.url_graph_html"
+                  target="_blank"
+                >
+                  Grafo
+                </a>
+
+                <button
+                  type="button"
+                  class="boton-documentacion"
+                  (click)="generarDocumentacion(proyecto.id_repositorio)"
+                >
+                  Generar documentación
+                </button>
+
+                <a
+                  [routerLink]="['/documentacion', proyecto.id_repositorio]"
+                  class="boton-documentacion boton-ver"
+                >
+                  Ver documentación
+                </a>
+
+                <a
+                  [href]="'http://127.0.0.1:8000/documentacion/' + proyecto.id_repositorio + '/word'"
+                  target="_blank"
+                  class="boton-word"
+                >
+                  Descargar Word
+                </a>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div *ngIf="!cargando && proyectos.length === 0" class="sin-datos">
+        <h2>Aún no hay proyectos analizados</h2>
+        <p>
+          Cuando analices un repositorio, aparecerá aquí automáticamente.
+        </p>
+      </div>
+
+      <div *ngIf="cargando" class="sin-datos">
+        <h2>Cargando historial...</h2>
+      </div>
+    </div>
+  </section>
+</div>

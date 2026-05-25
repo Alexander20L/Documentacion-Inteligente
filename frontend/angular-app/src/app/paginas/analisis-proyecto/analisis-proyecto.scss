@@ -1,0 +1,164 @@
+.pagina-analisis {
+  min-height: 100vh;
+  padding: 42px;
+  background: #eef2f7;
+  color: #0f172a;
+}
+
+.cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.etiqueta {
+  margin: 0 0 10px;
+  color: #2563eb;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+}
+
+.cabecera h1 {
+  margin: 0;
+  font-size: clamp(2rem, 3vw, 3.1rem);
+  line-height: 1.1;
+}
+
+.cabecera p {
+  max-width: 760px;
+  color: #64748b;
+  line-height: 1.7;
+}
+
+.boton-volver {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 14px;
+  background: #0f172a;
+  color: white;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.tarjeta {
+  max-width: 860px;
+  padding: 30px;
+  border-radius: 24px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+}
+
+.zona-archivo {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 160px;
+  padding: 26px;
+  border: 2px dashed #93a4bb;
+  border-radius: 20px;
+  cursor: pointer;
+  background: linear-gradient(180deg, #f8fafc, #f1f5f9);
+  transition: 0.2s ease;
+}
+
+.zona-archivo:hover {
+  border-color: #2563eb;
+  transform: translateY(-2px);
+}
+
+.zona-archivo input {
+  display: none;
+}
+
+.icono {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-weight: 900;
+}
+
+.zona-archivo strong {
+  font-size: 1.05rem;
+}
+
+.zona-archivo p {
+  margin: 6px 0 0;
+  color: #64748b;
+}
+
+.boton-principal {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 20px;
+  border: none;
+  border-radius: 14px;
+  background: #2563eb;
+  color: white;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.boton-principal:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+.resultado {
+  margin-top: 22px;
+  padding: 22px;
+  border-radius: 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.resultado h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.resultado p {
+  margin: 8px 0 18px;
+  color: #64748b;
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.acciones a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 12px;
+  background: #0f172a;
+  color: white;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+@media (max-width: 760px) {
+  .cabecera {
+    flex-direction: column;
+  }
+
+  .tarjeta {
+    max-width: none;
+  }
+}

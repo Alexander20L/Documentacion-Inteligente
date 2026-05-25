@@ -1,0 +1,54 @@
+<div class="pagina-analisis">
+  <header class="cabecera">
+    <div>
+      <p class="etiqueta">Nuevo análisis</p>
+      <h1>Analizar repositorio</h1>
+      <p>
+        Sube un proyecto en formato ZIP para generar los archivos base que serán usados en la documentación técnica.
+      </p>
+    </div>
+
+    <a routerLink="/dashboard" class="boton-volver">
+      Volver al dashboard
+    </a>
+  </header>
+
+  <section class="tarjeta">
+    <label class="zona-archivo">
+      <input
+        type="file"
+        accept=".zip"
+        (change)="seleccionarArchivo($event)"
+      />
+
+      <div class="icono">ZIP</div>
+
+      <div>
+        <strong>Seleccionar archivo ZIP</strong>
+        <p>{{ archivoSeleccionado?.name || 'Haz clic aquí para cargar el repositorio.' }}</p>
+      </div>
+    </label>
+
+    <button
+      type="button"
+      class="boton-principal"
+      (click)="subirYAnalizar()"
+      [disabled]="cargando"
+    >
+      {{ cargando ? 'Analizando repositorio...' : 'Analizar repositorio' }}
+    </button>
+
+    <div *ngIf="urlGrafo" class="resultado">
+      <div>
+        <h2>Archivos generados</h2>
+        <p>El análisis terminó correctamente. Ya puedes revisar los archivos base.</p>
+      </div>
+
+      <div class="acciones">
+        <a [href]="urlGrafo" target="_blank">Grafo</a>
+        <a [href]="urlJson" target="_blank">JSON</a>
+        <a [href]="urlReporte" target="_blank">Reporte</a>
+      </div>
+    </div>
+  </section>
+</div>
