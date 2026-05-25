@@ -8,6 +8,9 @@ const candidates = [
   path.join(__dirname, 'dist', 'angular-app', 'browser'),
   path.join(__dirname, 'dist', 'angular-app'),
   path.join(__dirname, 'dist'),
+  path.join(__dirname, '..', 'dist', 'angular-app', 'browser'),
+  path.join(__dirname, '..', 'dist', 'angular-app'),
+  path.join(__dirname, '..', 'dist'),
 ];
 
 const rootDir = candidates.find((candidate) => fs.existsSync(candidate));
