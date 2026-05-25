@@ -4,7 +4,7 @@ module.exports = {
       name: 'documentacion-backend',
       cwd: './backend',
       script: './.venv/bin/gunicorn',
-      args: '-k uvicorn.workers.UvicornWorker main:app --bind 127.0.0.1:8001 --workers 2 --timeout 300',
+      args: '-k uvicorn.workers.UvicornWorker main:app --bind 127.0.0.1:8001 --workers 2 --timeout 300 --access-logfile - --error-logfile - --capture-output --log-level info',
       interpreter: 'none',
       env: {
         PORT: 8001,
