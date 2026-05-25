@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 import subprocess
 import os
+from configuracion.url_base import construir_url_publica
 
 router = APIRouter(
     prefix="/analisis-graphify",
@@ -31,9 +32,9 @@ def analizar_proyecto():
             "mensaje": "Análisis con Graphify ejecutado correctamente",
             "salida": resultado.stdout,
             "archivos": {
-                "html": "http://127.0.0.1:8000/graphify/graph.html",
-                "json": "http://127.0.0.1:8000/graphify/graph.json",
-                "reporte": "http://127.0.0.1:8000/graphify/GRAPH_REPORT.md"
+                "html": construir_url_publica("graphify/graph.html"),
+                "json": construir_url_publica("graphify/graph.json"),
+                "reporte": construir_url_publica("graphify/GRAPH_REPORT.md")
             }
         }
 

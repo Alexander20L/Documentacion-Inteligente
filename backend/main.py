@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+import os
 from routers import repositorios
 from routers import autenticacion
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,9 +9,18 @@ from routers import documentacion
 
 app = FastAPI(title="Documentación Inteligente")
 
+cors_origins = [
+    origen.strip()
+    for origen in os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:4200,http://localhost:3000,http://127.0.0.1:4200,http://127.0.0.1:3000"
+    ).split(",")
+    if origen.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:4200"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

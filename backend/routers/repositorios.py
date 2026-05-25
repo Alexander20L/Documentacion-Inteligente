@@ -6,6 +6,7 @@ from uuid import uuid4
 import subprocess
 from fastapi.responses import FileResponse
 from configuracion.supabase_cliente import supabase
+from configuracion.url_base import construir_url_publica
 
 router = APIRouter(
     prefix="/repositorios",
@@ -107,9 +108,9 @@ def analizar_repositorio(id_repositorio: str, usuario_id: str, nombre_archivo: s
             "usuario_id": usuario_id,
             "id_repositorio": id_repositorio,
             "nombre_archivo": nombre_archivo,
-            "url_graph_html": f"http://127.0.0.1:8000/repositorios/{id_repositorio}/graph.html",
-            "url_graph_json": f"http://127.0.0.1:8000/repositorios/{id_repositorio}/graph.json",
-            "url_reporte": f"http://127.0.0.1:8000/repositorios/{id_repositorio}/GRAPH_REPORT.md",
+            "url_graph_html": construir_url_publica(f"repositorios/{id_repositorio}/graph.html"),
+            "url_graph_json": construir_url_publica(f"repositorios/{id_repositorio}/graph.json"),
+            "url_reporte": construir_url_publica(f"repositorios/{id_repositorio}/GRAPH_REPORT.md"),
             "estado": "analizado"
         }).execute()
 
@@ -118,9 +119,9 @@ def analizar_repositorio(id_repositorio: str, usuario_id: str, nombre_archivo: s
             "id_repositorio": id_repositorio,
             "salida": resultado.stdout,
             "archivos": {
-                "html": f"http://127.0.0.1:8000/repositorios/{id_repositorio}/graph.html",
-                "json": f"http://127.0.0.1:8000/repositorios/{id_repositorio}/graph.json",
-                "reporte": f"http://127.0.0.1:8000/repositorios/{id_repositorio}/GRAPH_REPORT.md"
+                "html": construir_url_publica(f"repositorios/{id_repositorio}/graph.html"),
+                "json": construir_url_publica(f"repositorios/{id_repositorio}/graph.json"),
+                "reporte": construir_url_publica(f"repositorios/{id_repositorio}/GRAPH_REPORT.md")
             }
         }
 

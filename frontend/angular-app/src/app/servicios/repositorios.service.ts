@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
+import { API_BASE_URL } from './api.config';
 
 @Injectable({
   providedIn: 'root',
@@ -7,8 +8,8 @@ import { inject, Injectable } from '@angular/core';
 export class RepositoriosService {
   private http = inject(HttpClient);
 
-  private apiRepositorios = 'http://127.0.0.1:8000/repositorios';
-  private apiDocumentacion = 'http://127.0.0.1:8000/documentacion';
+  private apiRepositorios = `${API_BASE_URL}/repositorios`;
+  private apiDocumentacion = `${API_BASE_URL}/documentacion`;
 
   subirRepositorio(archivo: File) {
     const formData = new FormData();

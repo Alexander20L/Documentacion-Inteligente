@@ -5,6 +5,7 @@ import json
 
 from configuracion.gemini_cliente import cliente_gemini
 from utils.generador_word import generar_word
+from configuracion.url_base import construir_url_publica
 
 router = APIRouter(
     prefix="/documentacion",
@@ -131,7 +132,7 @@ Información estructural graph.json:
             "mensaje": "Documentación generada correctamente",
             "id_repositorio": id_repositorio,
             "documentacion": documentacion,
-            "url_word": f"http://127.0.0.1:8000/documentacion/{id_repositorio}/word"
+            "url_word": construir_url_publica(f"documentacion/{id_repositorio}/word")
         }
 
     except Exception as error:

@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
+import { API_BASE_URL } from './api.config';
 
 @Injectable({
   providedIn: 'root',
@@ -7,7 +8,7 @@ import { inject, Injectable } from '@angular/core';
 export class AutenticacionService {
   private http = inject(HttpClient);
 
-  private apiUrl = 'http://127.0.0.1:8000/autenticacion';
+  private apiUrl = `${API_BASE_URL}/autenticacion`;
 
   registrar(datos: any) {
     return this.http.post(`${this.apiUrl}/registro`, datos);
