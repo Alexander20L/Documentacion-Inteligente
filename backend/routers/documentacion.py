@@ -1,60 +1,29 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
-import os
 import json
 
 from configuracion.gemini_cliente import cliente_gemini
+from configuracion.rutas_repositorios import resolver_ruta_graphify_out
 from utils.generador_word import generar_word
 from configuracion.url_base import construir_url_publica
 
-router = APIRouter(
-    prefix="/documentacion",
-    tags=["Documentación"]
-)
-
-BASE_DIR = os.getcwd()
-REPOS_DIR = os.path.join(BASE_DIR, "repos")
-
-
-def obtener_ruta_base_repositorio(id_repositorio: str):
-    ruta_repositorio = os.path.join(REPOS_DIR, id_repositorio)
-
-    if not os.path.exists(ruta_repositorio):
-        raise HTTPException(
-            status_code=404,
-            detail="El repositorio no existe"
-        )
-
-    elementos = os.listdir(ruta_repositorio)
-
-    carpetas = [
-        elemento for elemento in elementos
-        if os.path.isdir(os.path.join(ruta_repositorio, elemento))
-        and elemento != "graphify-out"
-    ]
-
-    if len(carpetas) == 1:
-        return os.path.join(ruta_repositorio, carpetas[0])
-
-    return ruta_repositorio
+router = APIRouter(prefix="/documentacion", tags=["Documentación"])
 
 
 @router.post("/{id_repositorio}/generar")
 def generar_documentacion(id_repositorio: str):
-    ruta_base = obtener_ruta_base_repositorio(id_repositorio)
+    carpeta_graphify = resolver_ruta_graphify_out(id_repositorio)
 
-    carpeta_graphify = os.path.join(ruta_base, "graphify-out")
+    ruta_graph_json = carpeta_graphify / "graph.json"
+    ruta_reporte = carpeta_graphify / "GRAPH_REPORT.md"
 
-    ruta_graph_json = os.path.join(carpeta_graphify, "graph.json")
-    ruta_reporte = os.path.join(carpeta_graphify, "GRAPH_REPORT.md")
-
-    if not os.path.exists(ruta_graph_json):
+    if not ruta_graph_json.exists():
         raise HTTPException(
             status_code=404,
             detail="No se encontró graph.json"
         )
 
-    if not os.path.exists(ruta_reporte):
+    if not ruta_reporte.exists():
         raise HTTPException(
             status_code=404,
             detail="No se encontró GRAPH_REPORT.md"
@@ -113,20 +82,14 @@ Información estructural graph.json:
 
         documentacion = respuesta.text
 
-        ruta_markdown = os.path.join(
-            carpeta_graphify,
-            "DOCUMENTACION_TECNICA.md"
-        )
+        ruta_markdown = carpeta_graphify / "DOCUMENTACION_TECNICA.md"
 
         with open(ruta_markdown, "w", encoding="utf-8") as archivo_salida:
             archivo_salida.write(documentacion)
 
-        ruta_word = os.path.join(
-            carpeta_graphify,
-            "DOCUMENTACION_TECNICA.docx"
-        )
+        ruta_word = carpeta_graphify / "DOCUMENTACION_TECNICA.docx"
 
-        generar_word(documentacion, ruta_word)
+        generar_word(documentacion, str(ruta_word))
 
         return {
             "mensaje": "Documentación generada correctamente",
@@ -144,15 +107,9 @@ Información estructural graph.json:
 
 @router.get("/{id_repositorio}/ver")
 def ver_documentacion(id_repositorio: str):
-    ruta_base = obtener_ruta_base_repositorio(id_repositorio)
+    ruta_documentacion = resolver_ruta_graphify_out(id_repositorio) / "DOCUMENTACION_TECNICA.md"
 
-    ruta_documentacion = os.path.join(
-        ruta_base,
-        "graphify-out",
-        "DOCUMENTACION_TECNICA.md"
-    )
-
-    if not os.path.exists(ruta_documentacion):
+    if not ruta_documentacion.exists():
         raise HTTPException(
             status_code=404,
             detail="La documentación todavía no ha sido generada"
@@ -170,22 +127,16 @@ def ver_documentacion(id_repositorio: str):
 
 @router.get("/{id_repositorio}/word")
 def descargar_word(id_repositorio: str):
-    ruta_base = obtener_ruta_base_repositorio(id_repositorio)
+    ruta_word = resolver_ruta_graphify_out(id_repositorio) / "DOCUMENTACION_TECNICA.docx"
 
-    ruta_word = os.path.join(
-        ruta_base,
-        "graphify-out",
-        "DOCUMENTACION_TECNICA.docx"
-    )
-
-    if not os.path.exists(ruta_word):
+    if not ruta_word.exists():
         raise HTTPException(
             status_code=404,
             detail="El documento Word no existe"
         )
 
     return FileResponse(
-        ruta_word,
+        str(ruta_word),
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         filename="DOCUMENTACION_TECNICA.docx"
     )

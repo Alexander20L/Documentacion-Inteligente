@@ -14,7 +14,7 @@ cors_origins = [
     origen.strip()
     for origen in os.getenv(
         "CORS_ORIGINS",
-        "http://localhost:4200,http://localhost:3000,http://127.0.0.1:4200,http://127.0.0.1:3000"
+        "http://84.247.191.38,http://localhost:4200,http://localhost:3000,http://127.0.0.1:4200,http://127.0.0.1:3000"
     ).split(",")
     if origen.strip()
 ]
@@ -33,13 +33,13 @@ app.include_router(graphify.router)
 app.include_router(documentacion.router)
 
 graphify_dir = Path(__file__).resolve().parent / "graphify-out"
+graphify_dir.mkdir(exist_ok=True)
 
-if graphify_dir.is_dir():
-    app.mount(
-        "/graphify",
-        StaticFiles(directory=str(graphify_dir)),
-        name="graphify"
-    )
+app.mount(
+    "/graphify",
+    StaticFiles(directory=str(graphify_dir)),
+    name="graphify"
+)
 
 @app.get("/")
 def home():

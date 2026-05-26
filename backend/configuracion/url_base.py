@@ -2,10 +2,14 @@ import os
 
 
 def obtener_url_publica_backend() -> str:
-    return os.getenv("PUBLIC_BACKEND_URL", "http://127.0.0.1:8000")
+    return os.getenv("PUBLIC_BACKEND_URL", "").rstrip("/")
 
 
 def construir_url_publica(ruta: str) -> str:
-    base = obtener_url_publica_backend().rstrip("/")
-    ruta_normalizada = ruta.lstrip("/")
-    return f"{base}/{ruta_normalizada}"
+    base = obtener_url_publica_backend()
+    ruta_normalizada = f"/{ruta.lstrip('/')}"
+
+    if not base:
+        return ruta_normalizada
+
+    return f"{base}{ruta_normalizada}"

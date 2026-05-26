@@ -51,28 +51,32 @@
             <td>
               <div class="acciones">
                 <a
-                  *ngIf="proyecto.url_graph_json"
-                  [href]="proyecto.url_graph_json"
+                  *ngIf="proyecto.archivos?.json"
+                  [href]="proyecto.archivos?.json"
                   target="_blank"
                 >
                   JSON
                 </a>
 
                 <a
-                  *ngIf="proyecto.url_reporte"
-                  [href]="proyecto.url_reporte"
+                  *ngIf="proyecto.archivos?.reporte"
+                  [href]="proyecto.archivos?.reporte"
                   target="_blank"
                 >
                   Reporte
                 </a>
 
                 <a
-                  *ngIf="proyecto.url_graph_html"
-                  [href]="proyecto.url_graph_html"
+                  *ngIf="proyecto.archivos?.html"
+                  [href]="proyecto.archivos?.html"
                   target="_blank"
                 >
                   Grafo
                 </a>
+
+                <span *ngIf="!proyecto.archivos?.html && proyecto.mensajes?.html">
+                  {{ proyecto.mensajes?.html }}
+                </span>
 
                 <button
                   type="button"
@@ -90,7 +94,8 @@
                 </a>
 
                 <a
-                  [href]="apiBaseUrl + '/documentacion/' + proyecto.id_repositorio + '/word'"
+                  *ngIf="proyecto.url_word"
+                  [href]="proyecto.url_word"
                   target="_blank"
                   class="boton-word"
                 >

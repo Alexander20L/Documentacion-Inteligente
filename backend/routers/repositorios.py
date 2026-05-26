@@ -7,22 +7,32 @@ import zipfile
 import subprocess
 import json
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
+from configuracion.rutas_repositorios import (
+    BASE_DIR,
+    REPOS_DIR,
+    obtener_ruta_repositorio,
+    obtener_ruta_codigo_repositorio,
+    iterar_candidatos_graphify_out,
+    resolver_ruta_graphify_out,
+)
 from configuracion.supabase_cliente import supabase
 from configuracion.url_base import construir_url_publica
 
 
-router = APIRouter(
-    prefix="/repositorios",
-    tags=["Repositorios"]
-)
+router = APIRouter(prefix="/repositorios", tags=["Repositorios"])
 
-BASE_DIR = Path(__file__).resolve().parent.parent
 UPLOADS_DIR = BASE_DIR / "uploads"
-REPOS_DIR = BASE_DIR / "repos"
-
-GRAPHIFY_BIN = BASE_DIR / ".venv" / "bin" / "graphify"
+ARCHIVOS_GRAPHIFY = {
+    "json": "graph.json",
+    "manifest": "manifest.json",
+    "analysis": ".graphify_analysis.json",
+    "html": "graph.html",
+    "reporte": "GRAPH_REPORT.md",
+}
+MAX_NODES_GRAPH_HTML = 5000
 
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 os.makedirs(REPOS_DIR, exist_ok=True)
@@ -30,7 +40,15 @@ os.makedirs(REPOS_DIR, exist_ok=True)
 
 def ejecutar_comando(comando: list[str], cwd: Path, descripcion: str):
     env = os.environ.copy()
-    env["PATH"] = f"{BASE_DIR / '.venv' / 'bin'}:{env.get('PATH', '')}"
+
+    rutas_venv = [
+        str(ruta)
+        for ruta in (BASE_DIR / ".venv" / "Scripts", BASE_DIR / ".venv" / "bin")
+        if ruta.exists()
+    ]
+
+    if rutas_venv:
+        env["PATH"] = os.pathsep.join(rutas_venv + [env.get("PATH", "")])
 
     resultado = subprocess.run(
         comando,
@@ -51,6 +69,28 @@ def ejecutar_comando(comando: list[str], cwd: Path, descripcion: str):
         )
 
     return resultado
+
+
+def obtener_graphify_bin() -> Path | None:
+    ruta_env = os.getenv("GRAPHIFY_BIN")
+    candidatos = []
+
+    if ruta_env:
+        candidatos.append(Path(ruta_env))
+
+    candidatos.extend(
+        [
+            BASE_DIR / ".venv" / "Scripts" / "graphify.exe",
+            BASE_DIR / ".venv" / "bin" / "graphify",
+        ]
+    )
+
+    for candidato in candidatos:
+        if candidato.exists():
+            return candidato
+
+    ruta_path = shutil.which("graphify")
+    return Path(ruta_path) if ruta_path else None
 
 
 def extraer_zip_seguro(ruta_zip: Path, ruta_destino: Path):
@@ -76,27 +116,97 @@ def extraer_zip_seguro(ruta_zip: Path, ruta_destino: Path):
         )
 
 
-def obtener_ruta_base_repositorio(id_repositorio: str) -> Path:
-    ruta_repositorio = REPOS_DIR / id_repositorio
+def buscar_ruta_graphify_out(
+    ruta_repositorio: Path,
+    ruta_analisis: Path,
+) -> Path | None:
+    for candidato in iterar_candidatos_graphify_out(ruta_repositorio, ruta_analisis):
+        if candidato.is_dir():
+            return candidato
 
-    if not ruta_repositorio.exists():
-        raise HTTPException(
-            status_code=404,
-            detail="El repositorio no existe"
+    return None
+
+
+def construir_estado_archivos_graphify(
+    ruta_base_publica: str,
+    ruta_graphify_out: Path | None,
+    mensajes: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    archivos: dict[str, str | None] = {}
+    disponibles: dict[str, bool] = {}
+    mensajes = dict(mensajes or {})
+
+    for clave, nombre_archivo in ARCHIVOS_GRAPHIFY.items():
+        disponible = bool(
+            ruta_graphify_out
+            and (ruta_graphify_out / nombre_archivo).is_file()
+        )
+        disponibles[clave] = disponible
+        archivos[clave] = (
+            construir_url_publica(f"{ruta_base_publica}/{nombre_archivo}")
+            if disponible
+            else None
         )
 
-    elementos = os.listdir(ruta_repositorio)
+    if not disponibles["html"]:
+        mensajes.setdefault(
+            "html",
+            "El grafo HTML no está disponible para este análisis.",
+        )
 
-    carpetas = [
-        elemento for elemento in elementos
-        if (ruta_repositorio / elemento).is_dir()
-        and elemento not in ["graphify-out", ".git"]
-    ]
+    if not disponibles["reporte"]:
+        mensajes.setdefault(
+            "reporte",
+            "El reporte Markdown no está disponible para este análisis.",
+        )
 
-    if len(carpetas) == 1:
-        return ruta_repositorio / carpetas[0]
+    return {
+        "archivos": archivos,
+        "disponibles": disponibles,
+        "mensajes": mensajes,
+    }
 
-    return ruta_repositorio
+
+def grafo_permite_html(ruta_graphify_out: Path) -> bool:
+    ruta_graph_json = ruta_graphify_out / ARCHIVOS_GRAPHIFY["json"]
+
+    with open(ruta_graph_json, "r", encoding="utf-8") as archivo:
+        graph = json.load(archivo)
+
+    return len(graph.get("nodes", [])) <= MAX_NODES_GRAPH_HTML
+
+
+def asegurar_outputs_graphify(ruta_graphify_out: Path) -> dict[str, str]:
+    ruta_graph_json = ruta_graphify_out / ARCHIVOS_GRAPHIFY["json"]
+    ruta_reporte = ruta_graphify_out / ARCHIVOS_GRAPHIFY["reporte"]
+    ruta_html = ruta_graphify_out / ARCHIVOS_GRAPHIFY["html"]
+    mensajes: dict[str, str] = {}
+
+    if not ruta_graph_json.exists():
+        raise HTTPException(
+            status_code=500,
+            detail="Graphify terminó, pero no generó graphify-out/graph.json",
+        )
+
+    if not ruta_reporte.exists():
+        generar_graph_report_md(ruta_graphify_out)
+
+        if not ruta_reporte.exists():
+            mensajes["reporte"] = "No se pudo generar el reporte Markdown del análisis."
+
+    if not ruta_html.exists():
+        if grafo_permite_html(ruta_graphify_out):
+            generar_graph_html(ruta_graphify_out)
+
+            if not ruta_html.exists():
+                mensajes["html"] = "No se pudo generar el grafo HTML del análisis."
+        else:
+            mensajes["html"] = (
+                "El grafo es demasiado grande para generar una visualización HTML. "
+                "Puedes revisar el JSON y el reporte Markdown."
+            )
+
+    return mensajes
 
 
 @router.get("/")
@@ -135,7 +245,8 @@ async def subir_repositorio(archivo: UploadFile = File(...)):
 
 @router.post("/{id_repositorio}/analizar")
 def analizar_repositorio(id_repositorio: str, usuario_id: str, nombre_archivo: str):
-    ruta_analisis = obtener_ruta_base_repositorio(id_repositorio)
+    ruta_repositorio = obtener_ruta_repositorio(id_repositorio)
+    ruta_analisis = obtener_ruta_codigo_repositorio(id_repositorio)
 
     try:
         if not os.getenv("GEMINI_API_KEY") and not os.getenv("GOOGLE_API_KEY"):
@@ -144,14 +255,18 @@ def analizar_repositorio(id_repositorio: str, usuario_id: str, nombre_archivo: s
                 detail="Falta configurar GEMINI_API_KEY o GOOGLE_API_KEY en el .env del backend"
             )
 
-        if not GRAPHIFY_BIN.exists():
+        graphify_bin = obtener_graphify_bin()
+
+        if graphify_bin is None:
             raise HTTPException(
                 status_code=500,
-                detail=f"No se encontró Graphify en: {GRAPHIFY_BIN}"
+                detail="No se encontró Graphify. Configura GRAPHIFY_BIN o instala la CLI en el entorno del backend."
             )
 
         shutil.rmtree(ruta_analisis / ".git", ignore_errors=True)
-        shutil.rmtree(ruta_analisis / "graphify-out", ignore_errors=True)
+
+        for candidato in iterar_candidatos_graphify_out(ruta_repositorio, ruta_analisis):
+            shutil.rmtree(candidato, ignore_errors=True)
 
         ejecutar_comando(
             ["git", "init"],
@@ -167,7 +282,7 @@ def analizar_repositorio(id_repositorio: str, usuario_id: str, nombre_archivo: s
 
         resultado = ejecutar_comando(
             [
-                str(GRAPHIFY_BIN),
+                str(graphify_bin),
                 "extract",
                 ".",
                 "--force"
@@ -176,21 +291,27 @@ def analizar_repositorio(id_repositorio: str, usuario_id: str, nombre_archivo: s
             descripcion="Ejecución de Graphify"
         )
 
-        ruta_graph_json = ruta_analisis / "graphify-out" / "graph.json"
+        ruta_graphify_out = buscar_ruta_graphify_out(ruta_repositorio, ruta_analisis)
 
-        if not ruta_graph_json.exists():
+        if ruta_graphify_out is None:
             raise HTTPException(
                 status_code=500,
-                detail="Graphify terminó, pero no generó graphify-out/graph.json"
+                detail="Graphify terminó, pero no generó la carpeta graphify-out"
             )
+
+        estado_archivos = construir_estado_archivos_graphify(
+            f"repositorios/{id_repositorio}",
+            ruta_graphify_out,
+            asegurar_outputs_graphify(ruta_graphify_out),
+        )
 
         supabase.table("proyectos").insert({
             "usuario_id": usuario_id,
             "id_repositorio": id_repositorio,
             "nombre_archivo": nombre_archivo,
-            "url_graph_html": construir_url_publica(f"repositorios/{id_repositorio}/graph.html"),
-            "url_graph_json": construir_url_publica(f"repositorios/{id_repositorio}/graph.json"),
-            "url_reporte": construir_url_publica(f"repositorios/{id_repositorio}/GRAPH_REPORT.md"),
+            "url_graph_html": estado_archivos["archivos"]["html"],
+            "url_graph_json": estado_archivos["archivos"]["json"],
+            "url_reporte": estado_archivos["archivos"]["reporte"],
             "estado": "analizado"
         }).execute()
 
@@ -198,13 +319,7 @@ def analizar_repositorio(id_repositorio: str, usuario_id: str, nombre_archivo: s
             "mensaje": "Repositorio analizado correctamente con Graphify",
             "id_repositorio": id_repositorio,
             "salida": resultado.stdout,
-            "archivos": {
-                "json": construir_url_publica(f"repositorios/{id_repositorio}/graph.json"),
-                "manifest": construir_url_publica(f"repositorios/{id_repositorio}/manifest.json"),
-                "analysis": construir_url_publica(f"repositorios/{id_repositorio}/.graphify_analysis.json"),
-                "html": construir_url_publica(f"repositorios/{id_repositorio}/graph.html"),
-                "reporte": construir_url_publica(f"repositorios/{id_repositorio}/GRAPH_REPORT.md")
-            }
+            **estado_archivos,
         }
 
     except HTTPException:
@@ -422,21 +537,46 @@ def obtener_historial():
         .execute()
     )
 
+    proyectos = []
+
+    for proyecto in resultado.data:
+        proyecto_normalizado = dict(proyecto)
+        ruta_word = None
+
+        try:
+            ruta_graphify_out = resolver_ruta_graphify_out(proyecto_normalizado["id_repositorio"])
+            candidato_word = ruta_graphify_out / "DOCUMENTACION_TECNICA.docx"
+            ruta_word = candidato_word if candidato_word.is_file() else None
+        except HTTPException:
+            ruta_graphify_out = None
+
+        estado_archivos = construir_estado_archivos_graphify(
+            f"repositorios/{proyecto_normalizado['id_repositorio']}",
+            ruta_graphify_out,
+        )
+
+        proyecto_normalizado.update(estado_archivos)
+        proyecto_normalizado["url_graph_html"] = estado_archivos["archivos"]["html"]
+        proyecto_normalizado["url_graph_json"] = estado_archivos["archivos"]["json"]
+        proyecto_normalizado["url_reporte"] = estado_archivos["archivos"]["reporte"]
+        proyecto_normalizado["url_word"] = (
+            construir_url_publica(
+                f"documentacion/{proyecto_normalizado['id_repositorio']}/word"
+            )
+            if ruta_word is not None
+            else None
+        )
+        proyectos.append(proyecto_normalizado)
+
     return {
         "mensaje": "Historial obtenido correctamente",
-        "proyectos": resultado.data
+        "proyectos": proyectos
     }
 
 
 @router.get("/{id_repositorio}/{nombre_archivo}")
 def obtener_archivo_graphify(id_repositorio: str, nombre_archivo: str):
-    archivos_permitidos = [
-        "graph.html",
-        "graph.json",
-        "GRAPH_REPORT.md",
-        "manifest.json",
-        ".graphify_analysis.json"
-    ]
+    archivos_permitidos = set(ARCHIVOS_GRAPHIFY.values())
 
     if nombre_archivo not in archivos_permitidos:
         raise HTTPException(
@@ -444,9 +584,8 @@ def obtener_archivo_graphify(id_repositorio: str, nombre_archivo: str):
             detail="Archivo no permitido"
         )
 
-    ruta_base = obtener_ruta_base_repositorio(id_repositorio)
-
-    ruta_archivo = ruta_base / "graphify-out" / nombre_archivo
+    ruta_graphify_out = resolver_ruta_graphify_out(id_repositorio)
+    ruta_archivo = ruta_graphify_out / nombre_archivo
 
     if not ruta_archivo.exists():
         raise HTTPException(

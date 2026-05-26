@@ -21,6 +21,7 @@ export class AnalisisProyecto {
   urlGrafo = '';
   urlJson = '';
   urlReporte = '';
+  mensajeResultado = '';
 
   seleccionarArchivo(evento: Event) {
     const input = evento.target as HTMLInputElement;
@@ -32,6 +33,7 @@ export class AnalisisProyecto {
     this.urlGrafo = '';
     this.urlJson = '';
     this.urlReporte = '';
+    this.mensajeResultado = '';
   }
 
   subirYAnalizar() {
@@ -45,6 +47,7 @@ export class AnalisisProyecto {
     this.urlGrafo = '';
     this.urlJson = '';
     this.urlReporte = '';
+    this.mensajeResultado = '';
 
     this.repositoriosService.subirRepositorio(this.archivoSeleccionado).subscribe({
       next: (respuestaSubida: any) => {
@@ -67,9 +70,19 @@ export class AnalisisProyecto {
           )
           .subscribe({
             next: (respuestaAnalisis: any) => {
-              this.urlGrafo = respuestaAnalisis.archivos.html;
-              this.urlJson = respuestaAnalisis.archivos.json;
-              this.urlReporte = respuestaAnalisis.archivos.reporte;
+              const archivos = respuestaAnalisis.archivos || {};
+              const disponibles = respuestaAnalisis.disponibles || {};
+              const mensajes = respuestaAnalisis.mensajes || {};
+
+              this.urlGrafo = archivos.html || '';
+              this.urlJson = archivos.json || '';
+              this.urlReporte = archivos.reporte || '';
+              this.mensajeResultado = [
+                !disponibles.html ? mensajes.html : '',
+                !disponibles.reporte ? mensajes.reporte : '',
+              ]
+                .filter(Boolean)
+                .join(' ');
 
               this.cargando = false;
               this.detectorCambios.detectChanges();

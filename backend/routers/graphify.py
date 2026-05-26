@@ -1,41 +1,52 @@
 from fastapi import APIRouter, HTTPException
-import subprocess
-import os
-from configuracion.url_base import construir_url_publica
+from pathlib import Path
 
-router = APIRouter(
-    prefix="/analisis-graphify",
-    tags=["Graphify"]
+from routers.repositorios import (
+    asegurar_outputs_graphify,
+    construir_estado_archivos_graphify,
+    ejecutar_comando,
+    obtener_graphify_bin,
 )
 
-RUTA_BACKEND = os.getcwd()
+router = APIRouter(prefix="/analisis-graphify", tags=["Graphify"])
+
+RUTA_BACKEND = Path(__file__).resolve().parent.parent
+RUTA_GRAPHIFY_OUT = RUTA_BACKEND / "graphify-out"
 
 
 @router.post("/analizar")
 def analizar_proyecto():
     try:
-        resultado = subprocess.run(
-            ["graphify", "update", "."],
-            cwd=RUTA_BACKEND,
-            capture_output=True,
-            text=True,
-            shell=True
-        )
+        graphify_bin = obtener_graphify_bin()
 
-        if resultado.returncode != 0:
+        if graphify_bin is None:
             raise HTTPException(
                 status_code=500,
-                detail=resultado.stderr
+                detail="No se encontró Graphify. Configura GRAPHIFY_BIN o instala la CLI en el entorno del backend.",
             )
+
+        resultado = ejecutar_comando(
+            [str(graphify_bin), "update", "."],
+            cwd=RUTA_BACKEND,
+            descripcion="Actualización de Graphify",
+        )
+
+        if not (RUTA_GRAPHIFY_OUT / "graph.json").exists():
+            raise HTTPException(
+                status_code=500,
+                detail="Graphify terminó, pero no generó graphify-out/graph.json",
+            )
+
+        estado_archivos = construir_estado_archivos_graphify(
+            "graphify",
+            RUTA_GRAPHIFY_OUT,
+            asegurar_outputs_graphify(RUTA_GRAPHIFY_OUT),
+        )
 
         return {
             "mensaje": "Análisis con Graphify ejecutado correctamente",
             "salida": resultado.stdout,
-            "archivos": {
-                "html": construir_url_publica("graphify/graph.html"),
-                "json": construir_url_publica("graphify/graph.json"),
-                "reporte": construir_url_publica("graphify/GRAPH_REPORT.md")
-            }
+            **estado_archivos,
         }
 
     except Exception as error:

@@ -38,17 +38,19 @@
       {{ cargando ? 'Analizando repositorio...' : 'Analizar repositorio' }}
     </button>
 
-    <div *ngIf="urlGrafo" class="resultado">
+    <div *ngIf="urlGrafo || urlJson || urlReporte || mensajeResultado" class="resultado">
       <div>
         <h2>Archivos generados</h2>
-        <p>El análisis terminó correctamente. Ya puedes revisar los archivos base.</p>
+        <p>El análisis terminó correctamente. Ya puedes revisar los archivos disponibles.</p>
       </div>
 
       <div class="acciones">
-        <a [href]="urlGrafo" target="_blank">Grafo</a>
-        <a [href]="urlJson" target="_blank">JSON</a>
-        <a [href]="urlReporte" target="_blank">Reporte</a>
+        <a *ngIf="urlGrafo" [href]="urlGrafo" target="_blank">Grafo</a>
+        <a *ngIf="urlJson" [href]="urlJson" target="_blank">JSON</a>
+        <a *ngIf="urlReporte" [href]="urlReporte" target="_blank">Reporte</a>
       </div>
+
+      <p *ngIf="mensajeResultado">{{ mensajeResultado }}</p>
     </div>
   </section>
 </div>

@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
 import { RepositoriosService } from '../../servicios/repositorios.service';
 import { RouterLink } from '@angular/router';
-import { API_BASE_URL } from '../../servicios/api.config';
 
 @Component({
   selector: 'app-historial-proyectos',
@@ -15,7 +14,6 @@ export class HistorialProyectos implements OnInit {
   private repositoriosService = inject(RepositoriosService);
   private detectorCambios = inject(ChangeDetectorRef);
 
-  apiBaseUrl = API_BASE_URL;
   proyectos: any[] = [];
   cargando = true;
 
