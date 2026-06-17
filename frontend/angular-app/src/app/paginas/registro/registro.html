@@ -57,8 +57,16 @@
         />
       </div>
 
-      <button type="button" class="boton-principal boton-registro" (click)="registrar()">
-        Crear cuenta
+      <p *ngIf="mensaje" class="mensaje-exito">{{ mensaje }}</p>
+      <p *ngIf="error" class="mensaje-error">{{ error }}</p>
+
+      <button
+        type="button"
+        class="boton-principal boton-registro"
+        (click)="registrar()"
+        [disabled]="cargando"
+      >
+        {{ cargando ? 'Creando cuenta...' : 'Crear cuenta' }}
       </button>
 
       <p class="enlace-auth">

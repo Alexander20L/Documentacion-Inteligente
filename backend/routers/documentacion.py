@@ -1,142 +1,131 @@
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse
-import json
+import logging
 
-from configuracion.gemini_cliente import cliente_gemini
-from configuracion.rutas_repositorios import resolver_ruta_graphify_out
-from utils.generador_word import generar_word
-from configuracion.url_base import construir_url_publica
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import FileResponse
+
+from modelos.estados_proyecto import EstadoDocumentacion, EstadoProyecto
+from seguridad import (
+    UsuarioAutenticado,
+    obtener_proyecto_del_usuario,
+    obtener_usuario_actual,
+)
+from servicios.servicio_documentacion import (
+    NOMBRE_DOCUMENTACION_MARKDOWN,
+    NOMBRE_DOCUMENTACION_WORD,
+    generar_documentacion_tecnica,
+    obtener_documentacion_markdown,
+    obtener_ruta_markdown_documentacion,
+    obtener_ruta_word_documentacion,
+)
+from servicios.tareas import actualizar_proyecto_admin, encolar_tarea_proyecto
+
 
 router = APIRouter(prefix="/documentacion", tags=["Documentación"])
+logger = logging.getLogger(__name__)
+
+
+def validar_proyecto_listo_para_documentar(proyecto: dict) -> None:
+    estado_actual = proyecto.get("estado")
+
+    if estado_actual != EstadoProyecto.GRAPHIFY_COMPLETADO.value:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Debes completar el análisis Graphify del repositorio "
+                "antes de generar documentación"
+            ),
+        )
 
 
 @router.post("/{id_repositorio}/generar")
-def generar_documentacion(id_repositorio: str):
-    carpeta_graphify = resolver_ruta_graphify_out(id_repositorio)
+def generar_documentacion(
+    id_repositorio: str,
+    usuario: UsuarioAutenticado = Depends(obtener_usuario_actual),
+):
+    proyecto = obtener_proyecto_del_usuario(id_repositorio, usuario)
+    validar_proyecto_listo_para_documentar(proyecto)
 
-    ruta_graph_json = carpeta_graphify / "graph.json"
-    ruta_reporte = carpeta_graphify / "GRAPH_REPORT.md"
+    tarea = encolar_tarea_proyecto(
+        id_repositorio,
+        "documentacion",
+        usuario,
+    )
 
-    if not ruta_graph_json.exists():
-        raise HTTPException(
-            status_code=404,
-            detail="No se encontró graph.json"
-        )
+    actualizar_proyecto_admin(
+        id_repositorio,
+        {
+            "estado_documentacion": EstadoDocumentacion.PENDIENTE.value,
+            "error_ultimo": None,
+        },
+    )
 
-    if not ruta_reporte.exists():
-        raise HTTPException(
-            status_code=404,
-            detail="No se encontró GRAPH_REPORT.md"
-        )
-
-    with open(ruta_graph_json, "r", encoding="utf-8") as archivo_json:
-        graph_json = json.load(archivo_json)
-
-    with open(ruta_reporte, "r", encoding="utf-8") as archivo_reporte:
-        reporte_md = archivo_reporte.read()
-
-    prompt = f"""
-Eres un especialista en documentación técnica de software.
-
-A partir de la información estructural extraída por Graphify, genera una documentación técnica clara, profesional y útil para desarrolladores.
-
-Debes usar únicamente la información proporcionada. No inventes tecnologías, módulos, endpoints ni reglas de negocio que no estén presentes en los datos.
-
-Estructura la documentación en Markdown con estas secciones:
-
-# Documentación técnica del proyecto
-
-## 1. Resumen general
-Describe el propósito técnico general del proyecto según la información disponible.
-
-## 2. Estructura del sistema
-Explica carpetas, archivos o módulos principales identificados.
-
-## 3. Componentes principales
-Lista y explica los componentes, clases, funciones o módulos más relevantes.
-
-## 4. Dependencias y relaciones internas
-Describe relaciones entre archivos, módulos o funciones según el grafo.
-
-## 5. Flujo técnico general
-Explica cómo parecen interactuar las partes principales del sistema.
-
-## 6. Consideraciones técnicas
-Incluye observaciones útiles para futuros desarrolladores.
-
-## 7. Limitaciones del análisis
-Aclara qué aspectos no pueden determinarse con certeza a partir de la información disponible.
-
-Información del reporte Graphify:
-{reporte_md}
-
-Información estructural graph.json:
-{json.dumps(graph_json, ensure_ascii=False)}
-"""
-
-    try:
-        respuesta = cliente_gemini.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt
-        )
-
-        documentacion = respuesta.text
-
-        ruta_markdown = carpeta_graphify / "DOCUMENTACION_TECNICA.md"
-
-        with open(ruta_markdown, "w", encoding="utf-8") as archivo_salida:
-            archivo_salida.write(documentacion)
-
-        ruta_word = carpeta_graphify / "DOCUMENTACION_TECNICA.docx"
-
-        generar_word(documentacion, str(ruta_word))
-
-        return {
-            "mensaje": "Documentación generada correctamente",
-            "id_repositorio": id_repositorio,
-            "documentacion": documentacion,
-            "url_word": construir_url_publica(f"documentacion/{id_repositorio}/word")
-        }
-
-    except Exception as error:
-        raise HTTPException(
-            status_code=500,
-            detail=str(error)
-        )
+    return {
+        "mensaje": "Generación de documentación encolada correctamente",
+        "id_repositorio": id_repositorio,
+        "tarea": tarea,
+        "estado_documentacion": EstadoDocumentacion.PENDIENTE.value,
+        "siguiente_accion": "CONSULTAR_ESTADO",
+    }
 
 
 @router.get("/{id_repositorio}/ver")
-def ver_documentacion(id_repositorio: str):
-    ruta_documentacion = resolver_ruta_graphify_out(id_repositorio) / "DOCUMENTACION_TECNICA.md"
+def ver_documentacion(
+    id_repositorio: str,
+    usuario: UsuarioAutenticado = Depends(obtener_usuario_actual),
+):
+    obtener_proyecto_del_usuario(id_repositorio, usuario)
 
-    if not ruta_documentacion.exists():
-        raise HTTPException(
-            status_code=404,
-            detail="La documentación todavía no ha sido generada"
-        )
-
-    with open(ruta_documentacion, "r", encoding="utf-8") as archivo:
-        contenido = archivo.read()
+    contenido = obtener_documentacion_markdown(id_repositorio)
 
     return {
         "mensaje": "Documentación obtenida correctamente",
         "id_repositorio": id_repositorio,
-        "documentacion": contenido
+        "documentacion": contenido,
     }
 
 
-@router.get("/{id_repositorio}/word")
-def descargar_word(id_repositorio: str):
-    ruta_word = resolver_ruta_graphify_out(id_repositorio) / "DOCUMENTACION_TECNICA.docx"
+@router.get("/{id_repositorio}/markdown")
+def descargar_markdown(
+    id_repositorio: str,
+    usuario: UsuarioAutenticado = Depends(obtener_usuario_actual),
+):
+    obtener_proyecto_del_usuario(id_repositorio, usuario)
 
-    if not ruta_word.exists():
+    ruta_markdown = obtener_ruta_markdown_documentacion(id_repositorio)
+
+    if not ruta_markdown.is_file():
         raise HTTPException(
             status_code=404,
-            detail="El documento Word no existe"
+            detail="El documento Markdown no existe",
+        )
+
+    return FileResponse(
+        str(ruta_markdown),
+        media_type="text/markdown",
+        filename=NOMBRE_DOCUMENTACION_MARKDOWN,
+    )
+
+
+@router.get("/{id_repositorio}/word")
+def descargar_word(
+    id_repositorio: str,
+    usuario: UsuarioAutenticado = Depends(obtener_usuario_actual),
+):
+    obtener_proyecto_del_usuario(id_repositorio, usuario)
+
+    ruta_word = obtener_ruta_word_documentacion(id_repositorio)
+
+    if not ruta_word.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="El documento Word no existe",
         )
 
     return FileResponse(
         str(ruta_word),
-        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        filename="DOCUMENTACION_TECNICA.docx"
+        media_type=(
+            "application/vnd.openxmlformats-officedocument."
+            "wordprocessingml.document"
+        ),
+        filename=NOMBRE_DOCUMENTACION_WORD,
     )

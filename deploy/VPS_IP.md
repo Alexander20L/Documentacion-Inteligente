@@ -22,12 +22,14 @@ pip install -r requirements.txt
 
 ```bash
 SUPABASE_URL=...
-SUPABASE_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
+SUPABASE_ANON_KEY=...
+SUPABASE_JWT_AUDIENCE=authenticated
 GEMINI_API_KEY=...
 CORS_ORIGINS=http://84.247.191.38
 ```
 
-3. Levantar solo el backend con PM2:
+3. Levantar backend y worker con PM2:
 
 ```bash
 cd /root/Documentacion-Inteligente
@@ -44,6 +46,16 @@ pm2 save
 cd /root/Documentacion-Inteligente/frontend/angular-app
 npm install
 npm run build
+```
+
+3. Configurar `public/runtime-config.js` antes de servir Angular:
+
+```js
+window.__DOCUGRAPH_ENV__ = {
+  apiBaseUrl: '',
+  supabaseUrl: 'https://TU-PROYECTO.supabase.co',
+  supabaseAnonKey: 'TU_ANON_KEY',
+};
 ```
 
 El build debe quedar en:
@@ -70,4 +82,4 @@ sudo systemctl reload nginx
 - `http://84.247.191.38/` carga Angular
 - `http://84.247.191.38/repositorios/` responde FastAPI
 - el navegador ya no usa `:3000` ni `:8001`
-- los archivos de Graphify se abren por rutas relativas del mismo origen
+- los archivos del análisis se consultan desde el backend autenticado
