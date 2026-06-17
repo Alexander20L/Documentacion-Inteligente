@@ -1,52 +1,27 @@
-# Environment files
+# Entorno
 .env
-.env.*
-!.env.example
-
-# Python bytecode and caches
-__pycache__/
-*.py[cod]
-*$py.class
-
-# Virtual environments
 .venv/
 venv/
-env/
-ENV/
 
-# Packaging and build artifacts
-build/
-dist/
-*.egg-info/
-.eggs/
-parts/
-sdist/
-var/
-wheels/
-
-# Test and tool caches
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 .pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.hypothesis/
-.tox/
-.coverage
-.coverage.*
-htmlcov/
 
-# Logs and local databases
-*.log
-*.sqlite3
-*.db
-
-# IDE and OS files
-.vscode/
-.idea/
-.DS_Store
-Thumbs.db
-
-# Generated application data
-graphify-out/
-outputs/
+# Archivos generados por el backend
 uploads/
 repos/
+outputs/
+graphify-out/
+datos/graphify-out/
+storage/
+tmp/
+
+# Logs
+*.log
+
+# Sistema
+.DS_Store
+Thumbs.db

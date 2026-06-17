@@ -38,6 +38,9 @@
       {{ cargando ? 'Analizando repositorio...' : 'Analizar repositorio' }}
     </button>
 
+    <p *ngIf="mensaje">{{ mensaje }}</p>
+    <p *ngIf="estadoProyecto">Estado actual: {{ estadoProyecto }}</p>
+
     <div *ngIf="urlGrafo || urlJson || urlReporte || mensajeResultado" class="resultado">
       <div>
         <h2>Archivos generados</h2>
@@ -45,9 +48,9 @@
       </div>
 
       <div class="acciones">
-        <a *ngIf="urlGrafo" [href]="urlGrafo" target="_blank">Grafo</a>
-        <a *ngIf="urlJson" [href]="urlJson" target="_blank">JSON</a>
-        <a *ngIf="urlReporte" [href]="urlReporte" target="_blank">Reporte</a>
+        <button type="button" *ngIf="urlGrafo" (click)="abrirGrafo()">Grafo</button>
+        <button type="button" *ngIf="urlJson" (click)="abrirJson()">JSON</button>
+        <button type="button" *ngIf="urlReporte" (click)="abrirReporte()">Reporte</button>
       </div>
 
       <p *ngIf="mensajeResultado">{{ mensajeResultado }}</p>

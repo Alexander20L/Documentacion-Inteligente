@@ -13,5 +13,16 @@ module.exports = {
           'http://84.247.191.38,http://127.0.0.1:3000,http://localhost:3000,http://127.0.0.1:4200,http://localhost:4200',
       },
     },
+    {
+      name: 'documentacion-worker',
+      cwd: './backend',
+      script: './.venv/bin/python',
+      args: 'worker.py',
+      interpreter: 'none',
+      env: {
+        WORKER_POLL_INTERVAL_SECONDS: process.env.WORKER_POLL_INTERVAL_SECONDS || 5,
+        WORKER_BATCH_SIZE: process.env.WORKER_BATCH_SIZE || 5,
+      },
+    },
   ],
 };

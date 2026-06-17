@@ -47,8 +47,10 @@
         />
       </div>
 
-      <button type="button" class="boton-principal" (click)="login()">
-        Ingresar
+      <p *ngIf="error" class="mensaje-error">{{ error }}</p>
+
+      <button type="button" class="boton-principal" (click)="login()" [disabled]="cargando">
+        {{ cargando ? 'Ingresando...' : 'Ingresar' }}
       </button>
 
       <p class="enlace-auth">

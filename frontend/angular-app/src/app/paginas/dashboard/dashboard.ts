@@ -1,5 +1,7 @@
 import { Component } from '@angular/core';
+import { inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { AutenticacionService } from '../../servicios/autenticacion.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -9,21 +11,13 @@ import { Router, RouterLink } from '@angular/router';
   styleUrl: './dashboard.scss',
 })
 export class Dashboard {
-  usuario: any = null;
+  private authService = inject(AutenticacionService);
+  private router = inject(Router);
 
-  constructor(private router: Router) {
-    const usuarioGuardado = localStorage.getItem('usuario');
+  usuario = this.authService.usuarioActual;
 
-    if (!usuarioGuardado) {
-      this.router.navigate(['/login']);
-      return;
-    }
-
-    this.usuario = JSON.parse(usuarioGuardado);
-  }
-
-  cerrarSesion() {
-    localStorage.removeItem('usuario');
-    this.router.navigate(['/login']);
+  async cerrarSesion() {
+    await this.authService.logout();
+    await this.router.navigate(['/login']);
   }
 }
