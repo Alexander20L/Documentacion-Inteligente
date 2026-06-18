@@ -4,7 +4,8 @@
       <p class="etiqueta">Nuevo análisis</p>
       <h1>Analizar repositorio</h1>
       <p>
-        Sube un proyecto en formato ZIP para generar los archivos base que serán usados en la documentación técnica.
+        Sube un proyecto en formato ZIP para generar los artefactos base de
+        documentación técnica y visualizar su grafo interactivo.
       </p>
     </div>
 
@@ -18,6 +19,7 @@
       <input
         type="file"
         accept=".zip"
+        [disabled]="cargando"
         (change)="seleccionarArchivo($event)"
       />
 
@@ -25,7 +27,12 @@
 
       <div>
         <strong>Seleccionar archivo ZIP</strong>
-        <p>{{ archivoSeleccionado?.name || 'Haz clic aquí para cargar el repositorio.' }}</p>
+        <p>
+          {{
+            archivoSeleccionado?.name ||
+              'Haz clic aquí para cargar el repositorio.'
+          }}
+        </p>
       </div>
     </label>
 
@@ -33,27 +40,56 @@
       type="button"
       class="boton-principal"
       (click)="subirYAnalizar()"
-      [disabled]="cargando"
+      [disabled]="!puedeAnalizar"
     >
-      {{ cargando ? 'Analizando repositorio...' : 'Analizar repositorio' }}
+      {{ textoBotonPrincipal }}
     </button>
 
-    <p *ngIf="mensaje">{{ mensaje }}</p>
-    <p *ngIf="estadoProyecto">Estado actual: {{ estadoProyecto }}</p>
+    <div
+      *ngIf="mensaje && !analisisCompletado"
+      class="mensaje mensaje-info"
+    >
+      {{ mensaje }}
+    </div>
 
-    <div *ngIf="urlGrafo || urlJson || urlReporte || mensajeResultado" class="resultado">
+    <div *ngIf="mensajeError" class="mensaje mensaje-error">
+      {{ mensajeError }}
+    </div>
+
+    <div *ngIf="estadoProyecto" class="estado-analisis">
+      <span>{{ analisisCompletado ? 'Resultado' : 'Estado' }}</span>
+      <strong>{{ estadoLegible }}</strong>
+    </div>
+
+    <div
+      *ngIf="analisisCompletado && (urlGrafo || urlJson || urlReporte)"
+      class="resultado"
+    >
       <div>
         <h2>Archivos generados</h2>
-        <p>El análisis terminó correctamente. Ya puedes revisar los archivos disponibles.</p>
+        <p>
+          El análisis terminó correctamente. Puedes revisar los artefactos
+          generados por Graphify.
+        </p>
       </div>
 
       <div class="acciones">
-        <button type="button" *ngIf="urlGrafo" (click)="abrirGrafo()">Grafo</button>
-        <button type="button" *ngIf="urlJson" (click)="abrirJson()">JSON</button>
-        <button type="button" *ngIf="urlReporte" (click)="abrirReporte()">Reporte</button>
+        <button type="button" *ngIf="urlGrafo" (click)="abrirGrafo()">
+          Ver grafo interactivo
+        </button>
+
+        <button type="button" *ngIf="urlJson" (click)="abrirJson()">
+          Ver JSON
+        </button>
+
+        <button type="button" *ngIf="urlReporte" (click)="abrirReporte()">
+          Ver reporte
+        </button>
       </div>
 
-      <p *ngIf="mensajeResultado">{{ mensajeResultado }}</p>
+      <p *ngIf="mensajeResultado" class="mensaje mensaje-advertencia">
+        {{ mensajeResultado }}
+      </p>
     </div>
   </section>
 </div>

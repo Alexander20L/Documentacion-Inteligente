@@ -4,12 +4,12 @@ import os
 from pathlib import Path
 from typing import Any
 
+import pypandoc
 from fastapi import HTTPException
 
 from configuracion.gemini_cliente import cliente_gemini
 from configuracion.rutas_repositorios import resolver_ruta_graphify_out
 from configuracion.url_base import construir_url_publica
-from utils.generador_word import generar_word
 
 
 logger = logging.getLogger(__name__)
@@ -204,6 +204,40 @@ def generar_markdown_con_gemini(prompt: str) -> str:
 
     return documentacion.strip()
 
+def generar_docx_desde_markdown(ruta_markdown: Path, ruta_word: Path) -> None:
+    if not ruta_markdown.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="No se encontró el archivo Markdown para generar el Word",
+        )
+
+    try:
+        ruta_word.parent.mkdir(parents=True, exist_ok=True)
+
+        if ruta_word.exists():
+            ruta_word.unlink()
+
+        pypandoc.convert_file(
+            source_file=str(ruta_markdown),
+            to="docx",
+            outputfile=str(ruta_word),
+            extra_args=[
+                "--standalone",
+                "--metadata=title:Documentación técnica del proyecto",
+            ],
+        )
+    except Exception as error:
+        logger.exception("Error al convertir Markdown a Word con Pandoc")
+        raise HTTPException(
+            status_code=500,
+            detail="No se pudo convertir la documentación Markdown a Word",
+        ) from error
+
+    if not ruta_word.is_file():
+        raise HTTPException(
+            status_code=500,
+            detail="Pandoc no generó el archivo Word",
+        )
 
 def generar_documentacion_tecnica(id_repositorio: str) -> dict[str, str]:
     carpeta_graphify = resolver_ruta_graphify_out(id_repositorio)
@@ -225,7 +259,7 @@ def generar_documentacion_tecnica(id_repositorio: str) -> dict[str, str]:
     documentacion = generar_markdown_con_gemini(prompt)
 
     ruta_markdown.write_text(documentacion, encoding="utf-8")
-    generar_word(documentacion, str(ruta_word))
+    generar_docx_desde_markdown(ruta_markdown, ruta_word)
 
     return {
         "mensaje": "Documentación generada correctamente",
