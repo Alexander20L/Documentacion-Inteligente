@@ -4,7 +4,8 @@
       <p class="etiqueta">Historial</p>
       <h1>Proyectos analizados</h1>
       <p>
-        Consulta los repositorios procesados y accede a los archivos generados por Graphify.
+        Consulta los repositorios procesados y accede a los artefactos
+        generados por Graphify.
       </p>
     </div>
 
@@ -14,117 +15,141 @@
   </header>
 
   <section class="tarjeta">
-    <p *ngIf="mensaje">{{ mensaje }}</p>
+    <div *ngIf="mensaje" class="mensaje mensaje-info">
+      {{ mensaje }}
+    </div>
 
-    <div class="tabla-contenedor">
-      <table *ngIf="!cargando && proyectos.length > 0">
-        <thead>
-          <tr>
-            <th>Repositorio</th>
-            <th>Estado</th>
-            <th>Fecha</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
+    <div *ngIf="mensajeError" class="mensaje mensaje-error">
+      {{ mensajeError }}
+    </div>
 
-        <tbody>
-          <tr *ngFor="let proyecto of proyectos">
-            <td>
-              <div class="repositorio">
-                <div class="icono">ZIP</div>
+    <div *ngIf="cargando" class="sin-datos">
+      <h2>Cargando historial...</h2>
+      <p>Estamos consultando tus proyectos analizados.</p>
+    </div>
 
-                <div>
-                  <strong>{{ proyecto.nombre_archivo }}</strong>
-                  <p>{{ proyecto.id_repositorio }}</p>
-                </div>
-              </div>
-            </td>
+    <div *ngIf="!cargando && proyectos.length === 0" class="sin-datos">
+      <h2>Aún no hay proyectos analizados</h2>
+      <p>
+        Cuando analices un repositorio, aparecerá aquí automáticamente.
+      </p>
 
-            <td>
-              <span class="estado">
-                {{ proyecto.estado }}
+      <a routerLink="/analisis-proyecto" class="boton-primario">
+        Analizar primer proyecto
+      </a>
+    </div>
+
+    <div *ngIf="!cargando && proyectos.length > 0" class="lista-proyectos">
+      <article
+        class="proyecto-card"
+        *ngFor="let proyecto of proyectos; trackBy: trackByRepositorio"
+      >
+        <div class="proyecto-principal">
+          <div class="icono">ZIP</div>
+
+          <div class="proyecto-info">
+            <h2>{{ proyecto.nombre_archivo || 'Repositorio sin nombre' }}</h2>
+            <p>{{ proyecto.id_repositorio }}</p>
+
+            <div class="metadatos">
+              <span>
+                {{ fechaProyecto(proyecto) | date:'short' }}
               </span>
+            </div>
+          </div>
+        </div>
 
-              <span class="estado" *ngIf="proyecto.estado_documentacion as estadoDocumentacion">
-                doc: {{ estadoDocumentacion }}
-              </span>
+        <div class="estados">
+          <div class="estado-bloque">
+            <span>Análisis</span>
+            <strong
+              class="estado"
+              [ngClass]="claseEstadoAnalisis(proyecto.estado)"
+            >
+              {{ estadoAnalisisLegible(proyecto.estado) }}
+            </strong>
+          </div>
 
-              <p *ngIf="proyecto.error_ultimo">{{ proyecto.error_ultimo }}</p>
-            </td>
+          <div class="estado-bloque">
+            <span>Documentación</span>
+            <strong
+              class="estado"
+              [ngClass]="claseEstadoDocumentacion(proyecto.estado_documentacion)"
+            >
+              {{ estadoDocumentacionLegible(proyecto.estado_documentacion) }}
+            </strong>
+          </div>
+        </div>
 
-            <td>
-              {{ fechaProyecto(proyecto) | date:'short' }}
-            </td>
-
-            <td>
-              <div class="acciones">
-                <button type="button" *ngIf="proyecto.archivos.json" (click)="abrirJson(proyecto.id_repositorio)">
-                  JSON
-                </button>
-
-                <button
-                  type="button"
-                  *ngIf="proyecto.archivos.reporte"
-                  (click)="abrirReporte(proyecto.id_repositorio)"
-                >
-                  Reporte
-                </button>
-
-                <button type="button" *ngIf="proyecto.archivos.html" (click)="abrirGrafo(proyecto.id_repositorio)">
-                  Grafo
-                </button>
-
-                <span *ngIf="!proyecto.archivos.html && proyecto.mensajes.html">
-                  {{ proyecto.mensajes.html }}
-                </span>
-
-                <button
-                  type="button"
-                  class="boton-documentacion"
-                  (click)="generarDocumentacion(proyecto.id_repositorio)"
-                  [disabled]="
-                    proyectoProcesando === proyecto.id_repositorio ||
-                    !puedeGenerarDocumentacion(proyecto)
-                  "
-                >
-                  {{
-                    proyectoProcesando === proyecto.id_repositorio
-                      ? 'Generando...'
-                      : 'Generar documentación'
-                  }}
-                </button>
-
-                <a
-                  [routerLink]="['/documentacion', proyecto.id_repositorio]"
-                  class="boton-documentacion boton-ver"
-                >
-                  Ver documentación
-                </a>
-
-                <button
-                  *ngIf="proyecto.url_word"
-                  type="button"
-                  (click)="descargarWord(proyecto.id_repositorio)"
-                  class="boton-word"
-                >
-                  Descargar Word
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div *ngIf="!cargando && proyectos.length === 0" class="sin-datos">
-        <h2>Aún no hay proyectos analizados</h2>
-        <p>
-          Cuando analices un repositorio, aparecerá aquí automáticamente.
+        <p *ngIf="proyecto.error_ultimo" class="mensaje mensaje-error">
+          {{ proyecto.error_ultimo }}
         </p>
-      </div>
 
-      <div *ngIf="cargando" class="sin-datos">
-        <h2>Cargando historial...</h2>
-      </div>
+        <div class="acciones">
+          <button
+            type="button"
+            *ngIf="proyecto.archivos.html"
+            class="accion accion-principal"
+            (click)="abrirGrafo(proyecto.id_repositorio)"
+          >
+            Ver grafo
+          </button>
+
+          <button
+            type="button"
+            *ngIf="proyecto.archivos.json"
+            class="accion"
+            (click)="abrirJson(proyecto.id_repositorio)"
+          >
+            Ver JSON
+          </button>
+
+          <button
+            type="button"
+            *ngIf="proyecto.archivos.reporte"
+            class="accion"
+            (click)="abrirReporte(proyecto.id_repositorio)"
+          >
+            Ver reporte
+          </button>
+
+          <button
+            type="button"
+            class="accion accion-documentacion"
+            (click)="generarDocumentacion(proyecto)"
+            [disabled]="
+              proyectoProcesando === proyecto.id_repositorio ||
+              !puedeGenerarDocumentacion(proyecto)
+            "
+          >
+            {{ textoBotonDocumentacion(proyecto) }}
+          </button>
+
+          <a
+            *ngIf="puedeVerDocumentacion(proyecto)"
+            [routerLink]="['/documentacion', proyecto.id_repositorio]"
+            class="accion accion-ver"
+          >
+            Ver documentación
+          </a>
+
+          <button
+            *ngIf="puedeDescargarWord(proyecto)"
+            type="button"
+            class="accion accion-word"
+            (click)="descargarWord(proyecto.id_repositorio)"
+          >
+            Descargar Word
+          </button>
+        </div>
+
+        <p
+          *ngIf="proyecto.archivos.html && proyecto.mensajes.html"
+          class="mensaje mensaje-advertencia"
+        >
+          {{ proyecto.mensajes.html }}
+        </p>
+      </article>
     </div>
   </section>
 </div>

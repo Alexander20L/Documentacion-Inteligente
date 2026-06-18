@@ -39,13 +39,19 @@
   align-items: center;
   justify-content: center;
   min-height: 44px;
-  padding: 0 16px;
+  padding: 0 18px;
   border-radius: 14px;
   background: #0f172a;
   color: white;
   font-weight: 800;
   text-decoration: none;
   white-space: nowrap;
+  transition: 0.2s ease;
+}
+
+.boton-volver:hover {
+  transform: translateY(-1px);
+  background: #111827;
 }
 
 .tarjeta {
@@ -82,6 +88,7 @@
 .icono {
   display: grid;
   place-items: center;
+  flex: 0 0 auto;
   width: 72px;
   height: 72px;
   border-radius: 18px;
@@ -97,6 +104,7 @@
 .zona-archivo p {
   margin: 6px 0 0;
   color: #64748b;
+  word-break: break-word;
 }
 
 .boton-principal {
@@ -109,11 +117,69 @@
   color: white;
   font-weight: 900;
   cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.boton-principal:hover:not(:disabled) {
+  background: #1d4ed8;
+  transform: translateY(-1px);
 }
 
 .boton-principal:disabled {
   background: #94a3b8;
   cursor: not-allowed;
+}
+
+.mensaje {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.mensaje-info {
+  color: #1e3a8a;
+  background: #dbeafe;
+  border: 1px solid #bfdbfe;
+}
+
+.mensaje-error {
+  color: #991b1b;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+}
+
+.mensaje-advertencia {
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+}
+
+.estado-analisis {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.estado-analisis span {
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.estado-analisis strong {
+  color: #0f172a;
+  font-weight: 900;
+  text-align: right;
 }
 
 .resultado {
@@ -132,6 +198,7 @@
 .resultado p {
   margin: 8px 0 18px;
   color: #64748b;
+  line-height: 1.5;
 }
 
 .acciones {
@@ -140,25 +207,68 @@
   gap: 10px;
 }
 
-.acciones a {
+.acciones button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: 42px;
   padding: 0 16px;
+  border: none;
   border-radius: 12px;
   background: #0f172a;
   color: white;
   font-weight: 800;
-  text-decoration: none;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.acciones button:hover {
+  background: #1e293b;
+  transform: translateY(-1px);
+}
+
+.acciones button:first-child {
+  background: #2563eb;
+}
+
+.acciones button:first-child:hover {
+  background: #1d4ed8;
 }
 
 @media (max-width: 760px) {
+  .pagina-analisis {
+    padding: 24px;
+  }
+
   .cabecera {
     flex-direction: column;
   }
 
   .tarjeta {
     max-width: none;
+    padding: 22px;
+  }
+
+  .zona-archivo {
+    align-items: flex-start;
+    flex-direction: column;
+    min-height: auto;
+  }
+
+  .estado-analisis {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .estado-analisis strong {
+    text-align: left;
+  }
+
+  .acciones {
+    flex-direction: column;
+  }
+
+  .acciones button {
+    width: 100%;
   }
 }
