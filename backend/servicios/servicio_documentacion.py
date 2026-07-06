@@ -543,18 +543,25 @@ def preparar_markdown_para_word_con_diagramas(ruta_markdown: Path) -> Path:
         ruta_mmd.write_text(codigo_mermaid, encoding="utf-8")
 
         try:
+            ruta_config_puppeteer = Path(__file__).resolve().parents[1] / "puppeteer-config.json"
+
+            comando_mmdc = [
+                ejecutable_mmdc,
+                "-i",
+                str(ruta_mmd),
+                "-o",
+                str(ruta_png),
+                "-b",
+                "transparent",
+                "--scale",
+                "2",
+            ]
+
+            if ruta_config_puppeteer.is_file():
+                comando_mmdc.extend(["-p", str(ruta_config_puppeteer)])
+
             resultado = subprocess.run(
-                [
-                    ejecutable_mmdc,
-                    "-i",
-                    str(ruta_mmd),
-                    "-o",
-                    str(ruta_png),
-                    "-b",
-                    "transparent",
-                    "--scale",
-                    "2",
-                ],
+                comando_mmdc,
                 check=True,
                 timeout=60,
                 capture_output=True,
