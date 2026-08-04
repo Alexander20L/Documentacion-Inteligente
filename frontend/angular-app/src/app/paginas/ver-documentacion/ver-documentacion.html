@@ -1,17 +1,17 @@
-<div class="pagina-documentacion">
-  <header class="cabecera">
+<div class="page pagina-documentacion">
+  <header class="page-header">
     <div>
-      <p class="etiqueta">Documentación técnica</p>
+      <p class="eyebrow">Documentación técnica</p>
       <h1>Resultado generado</h1>
     </div>
 
-    <a routerLink="/historial-proyectos" class="boton-volver">
+    <a routerLink="/historial-proyectos" class="ui-button secondary">
       Volver al historial
     </a>
   </header>
 
-  <section class="tarjeta">
-    <p *ngIf="cargando">Cargando documentación...</p>
+  <section class="surface documento">
+    <p *ngIf="cargando" role="status">Cargando documentación...</p>
 
     <pre *ngIf="!cargando">{{ documentacion }}</pre>
   </section>

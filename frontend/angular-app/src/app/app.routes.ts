@@ -4,16 +4,13 @@ import { Registro } from './paginas/registro/registro';
 import { Dashboard } from './paginas/dashboard/dashboard';
 import { AnalisisProyecto } from './paginas/analisis-proyecto/analisis-proyecto';
 import { HistorialProyectos } from './paginas/historial-proyectos/historial-proyectos';
-import { VerDocumentacion } from './paginas/ver-documentacion/ver-documentacion';
+import { RevisionC4 } from './paginas/revision-c4/revision-c4';
+import { ResultadoC4 } from './paginas/resultado-c4/resultado-c4';
 import { authGuard } from './guards/auth.guard';
 import { guestGuard } from './guards/guest.guard';
+import { AppShell } from './componentes/app-shell/app-shell';
 
 export const routes: Routes = [
-  {
-    path: '',
-    redirectTo: 'login',
-    pathMatch: 'full',
-  },
   {
     path: 'login',
     component: Login,
@@ -25,23 +22,16 @@ export const routes: Routes = [
     canActivate: [guestGuard],
   },
   {
-    path: 'dashboard',
-    component: Dashboard,
+    path: '',
+    component: AppShell,
     canActivate: [authGuard],
-  },
-  {
-    path: 'analisis-proyecto',
-    component: AnalisisProyecto,
-    canActivate: [authGuard],
-  },
-  {
-    path: 'historial-proyectos',
-    component: HistorialProyectos,
-    canActivate: [authGuard],
-  },
-  {
-    path: 'documentacion/:id',
-    component: VerDocumentacion,
-    canActivate: [authGuard],
+    children: [
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+      { path: 'dashboard', component: Dashboard },
+      { path: 'analisis-proyecto', component: AnalisisProyecto },
+      { path: 'historial-proyectos', component: HistorialProyectos },
+      { path: 'c4/:idRepositorio/ejecuciones/:idEjecucion/revision', component: RevisionC4 },
+      { path: 'c4/:idRepositorio/ejecuciones/:idEjecucion/resultado', component: ResultadoC4 },
+    ],
   },
 ];

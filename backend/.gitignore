@@ -21,6 +21,8 @@ tmp/
 
 # Logs
 *.log
+logs_*.out
+logs_*.err
 
 # Sistema
 .DS_Store

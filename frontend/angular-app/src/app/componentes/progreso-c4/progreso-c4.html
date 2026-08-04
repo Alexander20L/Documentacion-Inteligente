@@ -1,0 +1,83 @@
+<section
+  class="progreso"
+  [class.compacto]="compacto"
+  [class.advertencia]="inactiva"
+  [attr.aria-label]="'Progreso C4: ' + estado"
+>
+  <div class="encabezado" aria-live="polite">
+    <div class="identidad-progreso">
+      <span class="icono-status" [attr.data-estado]="estadoClave">
+        <ng-container [ngSwitch]="estadoClave">
+          <svg lucideCheck *ngSwitchCase="'completado'" aria-hidden="true" size="18"></svg>
+          <svg lucideCircleX *ngSwitchCase="'fallido'" aria-hidden="true" size="18"></svg>
+          <svg lucideBan *ngSwitchCase="'cancelado'" aria-hidden="true" size="18"></svg>
+          <svg lucideTriangleAlert *ngSwitchCase="'revision'" aria-hidden="true" size="18"></svg>
+          <svg lucideCircleDashed *ngSwitchCase="'pendiente'" aria-hidden="true" size="18"></svg>
+          <svg lucideLoaderCircle *ngSwitchDefault class="girando" aria-hidden="true" size="18"></svg>
+        </ng-container>
+      </span>
+      <div>
+        <div class="etiquetas-progreso">
+          <span class="estado">{{ estado }}</span>
+          <span class="fase">Fase {{ ejecucion.fase }}</span>
+        </div>
+        <strong>{{ paso }}</strong>
+      </div>
+    </div>
+    <b>{{ porcentaje }}%</b>
+  </div>
+
+  <div
+    class="barra"
+    role="progressbar"
+    [attr.aria-label]="paso"
+    [attr.aria-valuenow]="porcentaje"
+    aria-valuemin="0"
+    aria-valuemax="100"
+  >
+    <span [style.width.%]="porcentaje"></span>
+  </div>
+
+  <p *ngIf="mensaje" class="mensaje" aria-live="polite">{{ mensaje }}</p>
+  <p *ngIf="avisoRed" class="aviso-red" role="alert">{{ avisoRed }}</p>
+  <p *ngIf="inactiva" class="aviso-inactivo" role="status">
+    No hay actividad reciente. El proceso puede seguir en cola o recuperándose.
+  </p>
+
+  <dl *ngIf="!compacto" class="detalles">
+    <div>
+      <dt><svg lucideClock3 aria-hidden="true" size="15"></svg> Transcurrido</dt>
+      <dd>{{ duracion(tarea?.iniciado_en) }}</dd>
+    </div>
+    <div><dt>Última actividad</dt><dd>{{ actividadRelativa() }}</dd></div>
+    <div><dt>Tiempo restante</dt><dd>{{ tiempoRestante }}</dd></div>
+    <div *ngIf="unidadesVisibles"><dt>Unidades</dt><dd>{{ tarea?.unidades_completadas }} / {{ tarea?.unidades_totales }}</dd></div>
+    <div *ngIf="tarea"><dt>Intento</dt><dd>{{ tarea.intentos }} / {{ tarea.max_intentos }}</dd></div>
+  </dl>
+
+  <div class="acciones" *ngIf="mostrarCancelar || mostrarReintentar">
+    <button
+      type="button"
+      *ngIf="mostrarCancelar"
+      [class.accion-compacta]="compacto"
+      [attr.data-tooltip]="compacto ? 'Cancelar ejecución' : null"
+      [disabled]="accionEnCurso"
+      (click)="cancelar.emit()"
+    >
+      <svg lucideBan aria-hidden="true" size="17"></svg>
+      <span [class.visually-hidden]="compacto">{{ accionEnCurso ? 'Procesando…' : 'Cancelar' }}</span>
+    </button>
+    <button
+      type="button"
+      class="principal"
+      *ngIf="mostrarReintentar"
+      [class.accion-compacta]="compacto"
+      [attr.data-tooltip]="compacto ? 'Reintentar ejecución' : null"
+      [disabled]="accionEnCurso"
+      (click)="reintentar.emit()"
+    >
+      <svg lucideRotateCcw aria-hidden="true" size="17"></svg>
+      <span [class.visually-hidden]="compacto">{{ accionEnCurso ? 'Reintentando…' : 'Reintentar' }}</span>
+    </button>
+  </div>
+</section>

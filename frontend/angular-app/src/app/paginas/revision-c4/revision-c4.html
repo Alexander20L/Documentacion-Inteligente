@@ -1,0 +1,188 @@
+<div class="pagina-revision">
+  <header class="cabecera">
+    <div class="cabecera-principal">
+      <p class="etiqueta">Revision humana / Modelo C4</p>
+      <h1>Confirmar la arquitectura</h1>
+      <p class="bajada">
+        Revisa la evidencia, ajusta el lenguaje del modelo y decide cada inferencia antes de
+        publicar.
+      </p>
+    </div>
+    <a routerLink="/historial-proyectos" class="boton-volver">
+      <svg lucideArrowLeft aria-hidden="true"></svg><span>Volver al historial</span>
+    </a>
+  </header>
+
+  <ng-container *ngIf="ejecucion as run">
+    <app-progreso-c4
+      *ngIf="!revisionCargada"
+      class="progreso-pagina"
+      [ejecucion]="run"
+      [avisoRed]="avisoRed"
+      [accionEnCurso]="accionEnCurso"
+      (cancelar)="cancelar()"
+      (reintentar)="reintentar()"
+    />
+  </ng-container>
+  <div *ngIf="avisoRed && !ejecucion" class="mensaje mensaje-error" role="alert">{{ avisoRed }}</div>
+  <div *ngIf="cargando && !ejecucion" class="estado-pagina" role="status">Consultando la ejecucion...</div>
+  <div *ngIf="mensaje" class="mensaje mensaje-info" role="status">{{ mensaje }}</div>
+  <div *ngIf="mensajeError" class="mensaje mensaje-error" role="alert">{{ mensajeError }}</div>
+  <div *ngIf="mensajeError && ejecucion?.fase === 'revision' && !revisionCargada" class="reintento-carga">
+    <button type="button" (click)="cargarRevision()">
+      <svg lucideRotateCcw aria-hidden="true"></svg>Reintentar carga
+    </button>
+  </div>
+
+  <main *ngIf="revisionCargada" class="contenido">
+    <section class="resumen-revision" aria-label="Resumen de revision">
+      <button type="button" class="metrica metrica-pendiente" (click)="mostrarPendientes()">
+        <span>Pendientes</span><strong>{{ pendientes }}</strong><small>Resolver ahora</small>
+      </button>
+      <button type="button" class="metrica" (click)="filtrarPorEstado('aprobados')">
+        <span>Aprobados</span><strong>{{ aprobados }}</strong><small>Ver decisiones</small>
+      </button>
+      <button type="button" class="metrica" (click)="filtrarPorEstado('rechazados')">
+        <span>Rechazados</span><strong>{{ rechazados }}</strong><small>Ver decisiones</small>
+      </button>
+      <div class="metrica metrica-progreso">
+        <span>Decididos</span><strong>{{ decididos }} / {{ totalInferidos }}</strong><small>{{ porcentajeDecidido }}% completado</small>
+      </div>
+      <a class="metrica" href="#observaciones">
+        <span>Conflictos</span><strong>{{ conflictos.length }}</strong><small>Revisar hallazgos</small>
+      </a>
+      <a class="metrica" href="#observaciones">
+        <span>Huerfanos</span><strong>{{ huerfanos.length }}</strong><small>Revisar referencias</small>
+      </a>
+    </section>
+    <section class="tarjeta semantica" *ngIf="resumenSemantico as resumen">
+      <div>
+        <p class="etiqueta">Recuperacion semantica</p>
+        <h2>Base de evidencia RAG</h2>
+      </div>
+      <dl>
+        <div *ngIf="resumen.chunks_totales != null"><dt>Chunks</dt><dd>{{ resumen.chunks_indexados ?? 0 }} / {{ resumen.chunks_totales }}</dd></div>
+        <div *ngIf="resumen.lenguajes?.length"><dt>Lenguajes</dt><dd>{{ resumen.lenguajes?.join(', ') }}</dd></div>
+        <div *ngIf="resumen.backend_indice"><dt>Indice</dt><dd>{{ resumen.backend_indice }}</dd></div>
+      </dl>
+    </section>
+
+    <section class="tarjeta filtros" aria-label="Filtros de candidatos">
+      <div class="filtros-titulo"><svg lucideFilter aria-hidden="true"></svg><strong>Filtrar revision</strong></div>
+      <label>Estado<select [(ngModel)]="filtroEstado" (ngModelChange)="actualizarVista()"><option value="todos">Todos</option><option value="pendientes">Pendientes</option><option value="aprobados">Aprobados</option><option value="rechazados">Rechazados</option></select></label>
+      <label>Modulo<select [(ngModel)]="filtroModulo" (ngModelChange)="actualizarVista()"><option value="">Todos</option><option *ngFor="let modulo of modulos" [value]="modulo">{{ modulo }}</option></select></label>
+      <label>Agente<select [(ngModel)]="filtroAgente" (ngModelChange)="actualizarVista()"><option value="">Todos</option><option *ngFor="let agente of agentes" [value]="agente">{{ agente }}</option></select></label>
+      <button type="button" class="limpiar" [disabled]="!filtrosActivos" (click)="limpiarFiltros()">
+        <svg lucideRotateCcw aria-hidden="true"></svg>Restablecer
+      </button>
+      <div class="acciones-lote">
+        <div>
+          <strong>Acciones sobre pendientes visibles</strong>
+          <small>Solo se modifican inferencias pendientes que coinciden con los filtros actuales.</small>
+        </div>
+        <span class="alcance-lote">{{ candidatosPendientesVisibles.length }} en alcance</span>
+        <button type="button" class="control-decision activo-aprobado" [disabled]="!candidatosPendientesVisibles.length" (click)="aprobarVisibles()"><svg lucideCheck aria-hidden="true"></svg>Aprobar visibles</button>
+        <button type="button" class="control-decision activo-rechazado" [disabled]="!candidatosPendientesVisibles.length" (click)="rechazarVisibles()"><svg lucideX aria-hidden="true"></svg>Rechazar visibles</button>
+        <button type="button" class="limpiar" [disabled]="!ultimoLote.length" (click)="deshacerUltimoLote()"><svg lucideRotateCcw aria-hidden="true"></svg>Deshacer ultimo lote</button>
+      </div>
+    </section>
+
+    <section class="grupo-candidatos" aria-labelledby="titulo-elementos">
+      <div class="titulo-seccion">
+        <div><span>01</span><div><p class="etiqueta">Inventario arquitectonico</p><h2 id="titulo-elementos">Elementos</h2></div></div>
+        <small>{{ elementosVisibles.length }} de {{ elementos.length }}</small>
+      </div>
+      <div class="lista niveles-lista">
+        <section class="nivel-elementos" *ngFor="let grupo of gruposElementosVisibles">
+          <header class="nivel-cabecera">
+            <div><strong>{{ grupo.titulo }}</strong><span>{{ grupo.descripcion }}</span></div>
+            <small>{{ grupo.elementos.length }}</small>
+          </header>
+        <article class="candidato" *ngFor="let elemento of grupo.elementos; trackBy: trackById">
+          <header class="candidato-cabecera">
+            <div class="identidad"><strong>{{ elemento.tipo }}</strong><span>{{ elemento.procedencia === 'analyst_provided' ? 'Confirmado por analista' : elemento.inferido ? 'Inferido' : 'Detectado' }}</span></div>
+            <p class="padre"><svg lucideFileSearch aria-hidden="true"></svg>{{ elemento.padre_id ? 'Pertenece a ' + nombreElemento(elemento.padre_id) : 'Elemento raiz' }}</p>
+          </header>
+          <p class="marcado" *ngIf="elemento.marcado" role="note"><svg lucideAlertTriangle aria-hidden="true"></svg>{{ etiquetaMarcado(elemento.marcado) }}</p>
+          <div class="campos">
+            <label><span class="campo-etiqueta">Nombre <span class="requerido" aria-hidden="true">*</span></span><input [(ngModel)]="elemento.nombre" required /></label>
+            <label><span class="campo-etiqueta">Descripcion</span><textarea rows="3" [(ngModel)]="elemento.descripcion"></textarea></label>
+          </div>
+          <details class="evidencias" *ngIf="elemento.evidencias?.length">
+            <summary><span><svg lucideFileSearch aria-hidden="true"></svg>Evidencia <small>{{ elemento.evidencias?.length }}</small></span><svg lucideChevronDown class="chevron" aria-hidden="true"></svg></summary>
+            <div class="evidencia" *ngFor="let evidencia of elemento.evidencias">
+              <code>{{ ubicacion(evidencia) }}</code><span *ngIf="evidencia.simbolo">{{ evidencia.simbolo }}</span>
+              <small>{{ evidencia.modulo || 'Sin modulo' }} · {{ evidencia.agente || 'Agente no indicado' }}</small>
+              <p *ngIf="evidencia.resumen">{{ evidencia.resumen }}</p>
+            </div>
+          </details>
+          <fieldset class="decisiones" *ngIf="elemento.inferido">
+            <legend>Decision <span class="requerido" aria-hidden="true">*</span><span class="sr-only">obligatoria</span></legend>
+            <button type="button" class="control-decision tooltip" data-tooltip="Aprobar candidato" aria-label="Aprobar candidato" [attr.aria-pressed]="elemento.decision === 'APROBADO'" [class.activo-aprobado]="elemento.decision === 'APROBADO'" (click)="decidir(elemento, 'APROBADO')"><svg lucideCheck aria-hidden="true"></svg><span>Aprobar</span></button>
+            <button type="button" class="control-decision tooltip" data-tooltip="Rechazar candidato" aria-label="Rechazar candidato" [attr.aria-pressed]="elemento.decision === 'RECHAZADO'" [class.activo-rechazado]="elemento.decision === 'RECHAZADO'" (click)="decidir(elemento, 'RECHAZADO')"><svg lucideX aria-hidden="true"></svg><span>Rechazar</span></button>
+          </fieldset>
+        </article>
+        </section>
+        <div class="vacio-filtro" *ngIf="!elementosVisibles.length" role="status">
+          <svg lucideFilter aria-hidden="true"></svg><strong>No hay elementos con estos filtros</strong><p>Prueba otra combinacion o restablece la vista.</p><button type="button" (click)="limpiarFiltros()">Restablecer filtros</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="grupo-candidatos" aria-labelledby="titulo-relaciones">
+      <div class="titulo-seccion">
+        <div><span>02</span><div><p class="etiqueta">Conexiones del modelo</p><h2 id="titulo-relaciones">Relaciones</h2></div></div>
+        <small>{{ relacionesVisibles.length }} de {{ relaciones.length }}</small>
+      </div>
+      <div class="lista">
+        <article class="candidato" *ngFor="let relacion of relacionesVisibles; trackBy: trackById">
+          <header class="candidato-cabecera">
+            <div class="identidad identidad-relacion"><svg lucideGitBranch aria-hidden="true"></svg><strong>{{ nombreElemento(relacion.origen_id) }} <span aria-hidden="true">→</span> {{ nombreElemento(relacion.destino_id) }}</strong><span>{{ relacion.inferido ? 'Inferida' : 'Detectada' }}</span></div>
+            <p class="padre"><svg lucideSparkles aria-hidden="true"></svg>Derivacion: {{ derivacionRelacion(relacion) }}</p>
+          </header>
+          <p class="marcado" *ngIf="relacion.marcado === 'sin_evidencia_import'" role="note"><svg lucideAlertTriangle aria-hidden="true"></svg>Sin evidencia de import directo</p>
+          <div class="campos">
+            <label><span class="campo-etiqueta">Nombre <span class="requerido" aria-hidden="true">*</span></span><input [(ngModel)]="relacion.nombre" required /></label>
+            <label><span class="campo-etiqueta">Descripcion</span><textarea rows="3" [(ngModel)]="relacion.descripcion"></textarea></label>
+          </div>
+          <details class="evidencias" *ngIf="relacion.evidencias?.length">
+            <summary><span><svg lucideFileSearch aria-hidden="true"></svg>Evidencia <small>{{ relacion.evidencias?.length }}</small></span><svg lucideChevronDown class="chevron" aria-hidden="true"></svg></summary>
+            <div class="evidencia" *ngFor="let evidencia of relacion.evidencias">
+              <code>{{ ubicacion(evidencia) }}</code><span *ngIf="evidencia.simbolo">{{ evidencia.simbolo }}</span>
+              <small>{{ evidencia.modulo || 'Sin modulo' }} · {{ evidencia.agente || 'Agente no indicado' }}</small>
+              <p *ngIf="evidencia.resumen">{{ evidencia.resumen }}</p>
+            </div>
+          </details>
+          <fieldset class="decisiones" *ngIf="relacion.inferido">
+            <legend>Decision <span class="requerido" aria-hidden="true">*</span><span class="sr-only">obligatoria</span></legend>
+            <button type="button" class="control-decision tooltip" data-tooltip="Aprobar relacion" aria-label="Aprobar relacion" [attr.aria-pressed]="relacion.decision === 'APROBADO'" [class.activo-aprobado]="relacion.decision === 'APROBADO'" (click)="decidir(relacion, 'APROBADO')"><svg lucideCheck aria-hidden="true"></svg><span>Aprobar</span></button>
+            <button type="button" class="control-decision tooltip" data-tooltip="Rechazar relacion" aria-label="Rechazar relacion" [attr.aria-pressed]="relacion.decision === 'RECHAZADO'" [class.activo-rechazado]="relacion.decision === 'RECHAZADO'" (click)="decidir(relacion, 'RECHAZADO')"><svg lucideX aria-hidden="true"></svg><span>Rechazar</span></button>
+          </fieldset>
+        </article>
+        <div class="vacio-filtro" *ngIf="!relacionesVisibles.length" role="status">
+          <svg lucideFilter aria-hidden="true"></svg><strong>No hay relaciones con estos filtros</strong><p>Prueba otra combinacion o restablece la vista.</p><button type="button" (click)="limpiarFiltros()">Restablecer filtros</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="observaciones" class="tarjeta observaciones" *ngIf="conflictos.length || huerfanos.length">
+      <div class="titulo-seccion"><div><span>03</span><div><p class="etiqueta">Fuera del publicable</p><h2>Conflictos y huerfanos</h2></div></div></div>
+      <p class="aviso-exclusion"><svg lucideAlertTriangle aria-hidden="true"></svg>No se incluyen en el modelo publicable. Corrige la referencia o inferencia y ejecuta nuevamente el analisis.</p>
+      <div class="columnas-observaciones">
+        <div *ngIf="conflictos.length"><h3>Conflictos</h3><article *ngFor="let conflicto of conflictos"><strong>{{ conflicto.titulo || conflicto.identidad || conflicto.id }}</strong><p>{{ conflicto.descripcion || conflicto.razon }}</p><small *ngIf="conflicto.tipo">Tipo: {{ conflicto.tipo }}</small><small *ngIf="conflicto.valores?.length">Valores: {{ conflicto.valores?.join(', ') }}</small><code *ngFor="let evidencia of conflicto.evidencias">{{ ubicacion(evidencia) }}</code></article></div>
+        <div *ngIf="huerfanos.length"><h3>Huerfanos</h3><article *ngFor="let huerfano of huerfanos"><strong>{{ huerfano.candidato_id || huerfano.id }}</strong><p>{{ huerfano.descripcion || huerfano.razon }}</p><small *ngIf="huerfano.referencias_faltantes?.length">Referencias faltantes: {{ huerfano.referencias_faltantes?.join(', ') }}</small><code *ngIf="huerfano.evidencia as evidencia">{{ ubicacion(evidencia) }}</code></article></div>
+      </div>
+    </section>
+
+    <section class="tarjeta juez" *ngIf="hallazgosJuez.length">
+      <div class="titulo-seccion"><div><span>04</span><div><p class="etiqueta">Revision advisory</p><h2>Hallazgos del juez</h2></div></div><small>Asesoramiento, no decision</small></div>
+      <article *ngFor="let hallazgo of hallazgosJuez"><span>{{ hallazgo.severidad || 'informativo' }}</span><div><strong>{{ hallazgo.titulo || hallazgo.id }}</strong><p>{{ hallazgo.descripcion || hallazgo.mensaje }}</p><small *ngIf="hallazgo.codigo">Codigo: {{ hallazgo.codigo }}</small><small *ngIf="hallazgo.recomendacion">Recomendacion: {{ hallazgo.recomendacion }}</small></div></article>
+    </section>
+
+    <footer class="barra-acciones">
+      <div><strong>Revision {{ version }}</strong><small>{{ pendientes ? pendientes + ' decisiones pendientes' : inconsistencias ? inconsistencias + ' dependencias por corregir' : 'Lista para generar' }}</small></div>
+      <button type="button" class="boton-guardar" [disabled]="guardando" (click)="guardar()"><svg lucideSave aria-hidden="true"></svg>Guardar cambios</button>
+      <button type="button" class="boton-aprobar" [disabled]="guardando || pendientes > 0 || inconsistencias > 0" [attr.title]="pendientes ? 'Resuelve todas las inferencias pendientes antes de generar' : inconsistencias ? 'Corrige las decisiones que dependen de elementos rechazados' : null" (click)="aprobar()"><svg lucideSparkles aria-hidden="true"></svg>Aprobar y generar</button>
+    </footer>
+  </main>
+</div>

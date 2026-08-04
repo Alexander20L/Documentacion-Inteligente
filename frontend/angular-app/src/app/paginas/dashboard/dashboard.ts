@@ -1,23 +1,29 @@
 import { Component } from '@angular/core';
-import { inject } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
-import { AutenticacionService } from '../../servicios/autenticacion.service';
+import { RouterLink } from '@angular/router';
+import {
+  LucideArrowRight,
+  LucideBookOpenCheck,
+  LucideBoxes,
+  LucideGitBranch,
+  LucideHistory,
+  LucideScanSearch,
+  LucideSparkles,
+} from '@lucide/angular';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [RouterLink],
+  imports: [
+    RouterLink,
+    LucideArrowRight,
+    LucideBookOpenCheck,
+    LucideBoxes,
+    LucideGitBranch,
+    LucideHistory,
+    LucideScanSearch,
+    LucideSparkles,
+  ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
 })
-export class Dashboard {
-  private authService = inject(AutenticacionService);
-  private router = inject(Router);
-
-  usuario = this.authService.usuarioActual;
-
-  async cerrarSesion() {
-    await this.authService.logout();
-    await this.router.navigate(['/login']);
-  }
-}
+export class Dashboard {}

@@ -9,7 +9,7 @@ from configuracion.supabase_cliente import crear_cliente_supabase_usuario, supab
 from seguridad import UsuarioAutenticado
 
 ESTADOS_TAREA_ACTIVOS = {"pendiente", "procesando"}
-TIPOS_TAREA_VALIDOS = {"analisis", "documentacion"}
+TIPOS_TAREA_VALIDOS = {"analisis", "documentacion", "analisis_c4", "publicacion_c4"}
 
 
 def _timestamp_iso() -> str:
@@ -198,3 +198,94 @@ def actualizar_proyecto_admin(id_repositorio: str, cambios: dict[str, Any]):
         .eq("id_repositorio", id_repositorio)
         .execute()
     )
+
+
+def _fila_rpc(resultado) -> dict[str, Any] | None:
+    datos = resultado.data
+    if not datos:
+        return None
+    fila = datos[0] if isinstance(datos, list) else datos
+    if not isinstance(fila, dict) or not fila.get("id"):
+        return None
+    return _normalizar_tarea(dict(fila))
+
+
+def reclamar_tarea_rpc(worker_id: str, lease_seconds: int) -> dict[str, Any] | None:
+    return _fila_rpc(supabase_admin.rpc("reclamar_tarea_proyecto", {
+        "p_lease_owner": worker_id,
+        "p_lease_seconds": lease_seconds,
+    }).execute())
+
+
+def heartbeat_tarea_rpc(id_tarea: str, worker_id: str, intento: int, lease_seconds: int, progreso: int, fase: str) -> dict[str, Any]:
+    fila = _fila_rpc(supabase_admin.rpc("heartbeat_tarea_proyecto", {
+        "p_tarea_id": id_tarea,
+        "p_lease_owner": worker_id,
+        "p_intento": intento,
+        "p_lease_seconds": lease_seconds,
+        "p_progreso": progreso,
+        "p_fase": fase,
+    }).execute())
+    if fila is None:
+        raise RuntimeError("El heartbeat no devolvió la tarea")
+    return fila
+
+
+def completar_tarea_rpc(id_tarea: str, worker_id: str, intento: int, id_ejecucion: str | None = None) -> None:
+    supabase_admin.rpc("completar_tarea_proyecto", {
+        "p_tarea_id": id_tarea,
+        "p_lease_owner": worker_id,
+        "p_intento": intento,
+        "p_ejecucion_c4_id": id_ejecucion,
+    }).execute()
+
+
+def completar_analisis_c4_rpc(
+    id_tarea: str,
+    worker_id: str,
+    intento: int,
+    id_ejecucion: str,
+    resultado: dict[str, Any],
+) -> None:
+    supabase_admin.rpc("completar_analisis_c4", {
+        "p_tarea_id": id_tarea,
+        "p_lease_owner": worker_id,
+        "p_intento": intento,
+        "p_ejecucion_c4_id": id_ejecucion,
+        "p_resultado": resultado,
+    }).execute()
+
+
+def completar_publicacion_c4_rpc(
+    id_tarea: str,
+    worker_id: str,
+    intento: int,
+    id_ejecucion: str,
+    resultado: dict[str, Any],
+) -> None:
+    supabase_admin.rpc("completar_publicacion_c4", {
+        "p_tarea_id": id_tarea,
+        "p_lease_owner": worker_id,
+        "p_intento": intento,
+        "p_ejecucion_c4_id": id_ejecucion,
+        "p_resultado": resultado,
+    }).execute()
+
+
+def fallar_tarea_rpc(id_tarea: str, worker_id: str, intento: int, error: str, reintentable: bool) -> None:
+    supabase_admin.rpc("fallar_tarea_proyecto", {
+        "p_tarea_id": id_tarea,
+        "p_lease_owner": worker_id,
+        "p_intento": intento,
+        "p_error": error[:2000],
+        "p_reintentable": reintentable,
+    }).execute()
+
+
+def fallar_tarea_c4_rpc(id_tarea: str, worker_id: str, intento: int, error: str) -> None:
+    supabase_admin.rpc("fallar_tarea_c4", {
+        "p_tarea_id": id_tarea,
+        "p_lease_owner": worker_id,
+        "p_intento": intento,
+        "p_error": error[:2000],
+    }).execute()

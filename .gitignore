@@ -1,0 +1,6 @@
+# Infraestructura / credenciales de despliegue
+deploy/VPS_IP.md
+
+# Logs locales
+backend/logs_*.out
+backend/logs_*.err

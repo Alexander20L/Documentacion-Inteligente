@@ -1,95 +1,152 @@
-<div class="pagina-analisis">
-  <header class="cabecera">
+<main class="page pagina-analisis">
+  <header class="page-header">
     <div>
-      <p class="etiqueta">Nuevo análisis</p>
-      <h1>Analizar repositorio</h1>
-      <p>
-        Sube un proyecto en formato ZIP para generar los artefactos base de
-        documentación técnica y visualizar su grafo interactivo.
-      </p>
+      <span class="eyebrow">Nueva ejecución C4</span>
+      <h1>Descubrir la arquitectura</h1>
+      <p>Cuéntanos lo esencial. El análisis técnico completará el resto con evidencia del código.</p>
     </div>
-
-    <a routerLink="/dashboard" class="boton-volver">
+    <a routerLink="/dashboard" class="ui-button secondary">
+      <svg lucideArrowLeft aria-hidden="true" size="18"></svg>
       Volver al dashboard
     </a>
   </header>
 
-  <section class="tarjeta">
-    <label class="zona-archivo">
-      <input
-        type="file"
-        accept=".zip"
-        [disabled]="cargando"
-        (change)="seleccionarArchivo($event)"
-      />
-
-      <div class="icono">ZIP</div>
-
+  <form *ngIf="!ejecucion" class="asistente" [formGroup]="formulario" (ngSubmit)="iniciarAnalisis()">
+    <header class="cabecera-asistente">
       <div>
-        <strong>Seleccionar archivo ZIP</strong>
-        <p>
-          {{
-            archivoSeleccionado?.name ||
-              'Haz clic aquí para cargar el repositorio.'
-          }}
-        </p>
+        <p class="sobrelinea">Preparación del análisis</p>
+        <h2>Paso {{ pasoActual }} de 5</h2>
       </div>
-    </label>
+      <p>Solo pediremos información que no puede deducirse del repositorio.</p>
+    </header>
 
-    <button
-      type="button"
-      class="boton-principal"
-      (click)="subirYAnalizar()"
-      [disabled]="!puedeAnalizar"
-    >
-      {{ textoBotonPrincipal }}
-    </button>
+    <ol class="indicador-pasos" aria-label="Progreso de configuración">
+      <li *ngFor="let paso of [1, 2, 3, 4, 5]" [class.actual]="pasoActual === paso" [class.completado]="paso < pasoActual">
+        <button type="button" [disabled]="paso > pasoMaximo || procesando" (click)="irAlPaso(paso)" [attr.aria-current]="pasoActual === paso ? 'step' : null">
+          <span><svg *ngIf="paso < pasoActual" lucideCheck aria-hidden="true" size="15"></svg><ng-container *ngIf="paso >= pasoActual">{{ paso }}</ng-container></span>
+          <small>{{ ['Repositorio', 'Sistema', 'Actores', 'Integraciones', 'Confirmar'][paso - 1] }}</small>
+        </button>
+      </li>
+    </ol>
 
-    <div
-      *ngIf="mensaje && !analisisCompletado"
-      class="mensaje mensaje-info"
-    >
-      {{ mensaje }}
-    </div>
+    <section class="panel-paso surface" [ngSwitch]="pasoActual">
+      <div *ngSwitchCase="1" class="contenido-paso" aria-labelledby="paso-repositorio">
+        <div class="encabezado-paso">
+          <p class="sobrelinea">Empecemos por el código</p>
+          <h2 id="paso-repositorio">¿Qué repositorio quieres analizar?</h2>
+          <p>Selecciona una copia del repositorio en formato ZIP. No ejecutaremos su contenido.</p>
+        </div>
 
-    <div *ngIf="mensajeError" class="mensaje mensaje-error">
-      {{ mensajeError }}
-    </div>
-
-    <div *ngIf="estadoProyecto" class="estado-analisis">
-      <span>{{ analisisCompletado ? 'Resultado' : 'Estado' }}</span>
-      <strong>{{ estadoLegible }}</strong>
-    </div>
-
-    <div
-      *ngIf="analisisCompletado && (urlGrafo || urlJson || urlReporte)"
-      class="resultado"
-    >
-      <div>
-        <h2>Archivos generados</h2>
-        <p>
-          El análisis terminó correctamente. Puedes revisar los artefactos
-          generados por Graphify.
-        </p>
+        <span id="etiqueta-archivo" class="field-label">Archivo ZIP <span class="required-marker" aria-hidden="true">*</span></span>
+        <input id="archivo-repositorio" class="visually-hidden" type="file" accept=".zip,application/zip" aria-labelledby="etiqueta-archivo" [disabled]="procesando" (change)="seleccionarArchivo($event)" />
+        <label class="zona-archivo" for="archivo-repositorio">
+          <span class="icono-archivo"><svg lucideUpload aria-hidden="true" size="22"></svg></span>
+          <span><strong>{{ archivoSeleccionado ? 'Cambiar archivo ZIP' : 'Elegir archivo ZIP' }}</strong><small>Busca el archivo en tu equipo.</small></span>
+        </label>
+        <div *ngIf="archivoSeleccionado as archivo" class="resumen-archivo" aria-live="polite">
+          <svg lucideFileArchive aria-hidden="true" size="22"></svg>
+          <div><strong>{{ archivo.name }}</strong><span>{{ archivo.size / 1024 / 1024 | number: '1.1-2' }} MB · Listo para cargar</span></div>
+        </div>
       </div>
 
-      <div class="acciones">
-        <button type="button" *ngIf="urlGrafo" (click)="abrirGrafo()">
-          Ver grafo interactivo
-        </button>
-
-        <button type="button" *ngIf="urlJson" (click)="abrirJson()">
-          Ver JSON
-        </button>
-
-        <button type="button" *ngIf="urlReporte" (click)="abrirReporte()">
-          Ver reporte
-        </button>
+      <div *ngSwitchCase="2" class="contenido-paso" aria-labelledby="paso-identidad">
+        <div class="encabezado-paso">
+          <p class="sobrelinea">Contexto del negocio</p>
+          <h2 id="paso-identidad">¿Qué sistema representa este código?</h2>
+          <p>Descríbelo con palabras sencillas. Esto ayuda a interpretar correctamente los hallazgos técnicos.</p>
+        </div>
+        <div class="campos-identidad">
+          <div class="field campo-ancho">
+            <label for="nombre-sistema">Nombre del sistema <span class="required-marker" aria-hidden="true">*</span></label>
+            <input id="nombre-sistema" formControlName="nombreSistema" autocomplete="off" placeholder="Ej. Plataforma de pedidos" />
+          </div>
+          <div class="field">
+            <label for="descripcion-sistema">¿Qué hace? <span class="required-marker" aria-hidden="true">*</span></label>
+            <textarea id="descripcion-sistema" rows="4" formControlName="descripcion" placeholder="Describe sus funciones principales"></textarea>
+          </div>
+          <div class="field">
+            <label for="proposito-sistema">¿Para qué existe? <span class="required-marker" aria-hidden="true">*</span></label>
+            <textarea id="proposito-sistema" rows="4" formControlName="proposito" placeholder="Explica el objetivo que cumple"></textarea>
+          </div>
+        </div>
       </div>
 
-      <p *ngIf="mensajeResultado" class="mensaje mensaje-advertencia">
-        {{ mensajeResultado }}
-      </p>
-    </div>
-  </section>
-</div>
+      <div *ngSwitchCase="3" class="contenido-paso" aria-labelledby="paso-actores">
+        <div class="encabezado-paso">
+          <p class="sobrelinea">Personas y roles</p>
+          <h2 id="paso-actores">¿Hay personas o roles que usan el sistema?</h2>
+          <p>Por ejemplo: clientes, administradores, operadores o personal de soporte.</p>
+        </div>
+        <div class="opciones-binarias" role="group" aria-labelledby="paso-actores">
+          <button type="button" [class.seleccionada]="tieneActores === true" [attr.aria-pressed]="tieneActores === true" (click)="elegirActores(true)"><strong>Sí</strong><span>Quiero indicar quiénes lo utilizan</span></button>
+          <button type="button" [class.seleccionada]="tieneActores === false" [attr.aria-pressed]="tieneActores === false" (click)="elegirActores(false)"><strong>No</strong><span>No aplica o aún no lo sabemos</span></button>
+        </div>
+        <div *ngIf="tieneActores" class="detalle-respuesta">
+          <div class="titulo-fila"><div><p class="sobrelinea">Actores conocidos</p><h3>¿Quién interactúa con el sistema?</h3></div><button type="button" class="accion-agregar" (click)="agregarActor()"><svg lucidePlus aria-hidden="true" size="18"></svg>Agregar actor</button></div>
+          <div class="filas" formArrayName="actores">
+            <fieldset class="fila-contexto" *ngFor="let actor of formulario.controls.actores.controls; let i = index" [formGroupName]="i">
+              <legend>Actor {{ i + 1 }}</legend>
+              <div class="field"><label [for]="'actor-nombre-' + i">Nombre o rol <span class="required-marker" aria-hidden="true">*</span></label><input [id]="'actor-nombre-' + i" formControlName="nombre" placeholder="Ej. Administrador" /></div>
+              <div class="field"><label [for]="'actor-descripcion-' + i">¿Cómo lo utiliza? <span class="required-marker" aria-hidden="true">*</span></label><input [id]="'actor-descripcion-' + i" formControlName="descripcion" placeholder="Ej. Gestiona usuarios y permisos" /></div>
+              <button type="button" class="icon-button danger accion-quitar" data-tooltip="Quitar actor" [attr.aria-label]="'Quitar actor ' + (i + 1)" (click)="quitarActor(i)"><svg lucideTrash2 aria-hidden="true" size="18"></svg></button>
+            </fieldset>
+          </div>
+          <button *ngIf="formulario.controls.actores.length === 0" type="button" class="estado-filas" (click)="agregarActor()">Agrega al menos un actor para continuar</button>
+        </div>
+        <div *ngIf="tieneActores === false" class="confirmacion-respuesta"><svg lucideCheck aria-hidden="true" size="18"></svg><span>Continuaremos sin actores declarados. Podrás reconocerlos durante la revisión.</span></div>
+      </div>
+
+      <div *ngSwitchCase="4" class="contenido-paso" aria-labelledby="paso-externos">
+        <div class="encabezado-paso">
+          <p class="sobrelinea">Entorno del sistema</p>
+          <h2 id="paso-externos">¿Se integra con otros sistemas o servicios?</h2>
+          <p>Incluye plataformas externas, APIs de terceros, proveedores de identidad o servicios de pago.</p>
+        </div>
+        <div class="opciones-binarias" role="group" aria-labelledby="paso-externos">
+          <button type="button" [class.seleccionada]="tieneSistemasExternos === true" [attr.aria-pressed]="tieneSistemasExternos === true" (click)="elegirSistemasExternos(true)"><strong>Sí</strong><span>Conozco una o más integraciones</span></button>
+          <button type="button" [class.seleccionada]="tieneSistemasExternos === false" [attr.aria-pressed]="tieneSistemasExternos === false" (click)="elegirSistemasExternos(false)"><strong>No</strong><span>No tiene o se identificarán en el código</span></button>
+        </div>
+        <div *ngIf="tieneSistemasExternos" class="detalle-respuesta">
+          <div class="titulo-fila"><div><p class="sobrelinea">Integraciones conocidas</p><h3>¿Con qué se comunica?</h3></div><button type="button" class="accion-agregar" (click)="agregarSistemaExterno()"><svg lucidePlus aria-hidden="true" size="18"></svg>Agregar sistema</button></div>
+          <div class="filas" formArrayName="sistemasExternos">
+            <fieldset class="fila-contexto" *ngFor="let sistema of formulario.controls.sistemasExternos.controls; let i = index" [formGroupName]="i">
+              <legend>Sistema externo {{ i + 1 }}</legend>
+              <div class="field"><label [for]="'externo-nombre-' + i">Nombre <span class="required-marker" aria-hidden="true">*</span></label><input [id]="'externo-nombre-' + i" formControlName="nombre" placeholder="Ej. Stripe" /></div>
+              <div class="field"><label [for]="'externo-descripcion-' + i">¿Qué responsabilidad tiene? <span class="required-marker" aria-hidden="true">*</span></label><input [id]="'externo-descripcion-' + i" formControlName="descripcion" placeholder="Ej. Procesa los pagos" /></div>
+              <button type="button" class="icon-button danger accion-quitar" data-tooltip="Quitar sistema" [attr.aria-label]="'Quitar sistema externo ' + (i + 1)" (click)="quitarSistemaExterno(i)"><svg lucideTrash2 aria-hidden="true" size="18"></svg></button>
+            </fieldset>
+          </div>
+          <button *ngIf="formulario.controls.sistemasExternos.length === 0" type="button" class="estado-filas" (click)="agregarSistemaExterno()">Agrega al menos una integración para continuar</button>
+        </div>
+        <div *ngIf="tieneSistemasExternos === false" class="confirmacion-respuesta"><svg lucideCheck aria-hidden="true" size="18"></svg><span>El análisis buscará integraciones directamente en el código.</span></div>
+      </div>
+
+      <div *ngSwitchCase="5" class="contenido-paso" aria-labelledby="paso-confirmacion">
+        <div class="encabezado-paso">
+          <p class="sobrelinea">Todo listo</p>
+          <h2 id="paso-confirmacion">Revisa antes de comenzar</h2>
+          <p>El proceso continuará en segundo plano y se detendrá para que confirmes cada inferencia.</p>
+        </div>
+        <dl class="resumen-configuracion">
+          <div><dt>Repositorio</dt><dd>{{ archivoSeleccionado?.name }}</dd><button type="button" (click)="irAlPaso(1)">Editar</button></div>
+          <div><dt>Sistema</dt><dd>{{ formulario.controls.nombreSistema.value }}</dd><button type="button" (click)="irAlPaso(2)">Editar</button></div>
+          <div><dt>Actores</dt><dd>{{ tieneActores ? formulario.controls.actores.length + ' declarados' : 'Sin actores declarados' }}</dd><button type="button" (click)="irAlPaso(3)">Editar</button></div>
+          <div><dt>Integraciones</dt><dd>{{ tieneSistemasExternos ? formulario.controls.sistemasExternos.length + ' declaradas' : 'Se detectarán en el código' }}</dd><button type="button" (click)="irAlPaso(4)">Editar</button></div>
+        </dl>
+      </div>
+    </section>
+
+    <div *ngIf="mensaje && !ejecucion" class="alert estado-proceso" role="status">{{ mensaje }}</div>
+    <div *ngIf="mensajeError" class="alert error" role="alert">{{ mensajeError }}</div>
+
+    <footer class="navegacion-asistente">
+      <button *ngIf="pasoActual > 1" type="button" class="ui-button secondary" [disabled]="procesando" (click)="retroceder()"><svg lucideArrowLeft aria-hidden="true" size="18"></svg>Anterior</button>
+      <span *ngIf="pasoActual === 1" aria-hidden="true"></span>
+      <button *ngIf="pasoActual < 5" type="button" class="ui-button" [disabled]="procesando" (click)="avanzar()">Continuar<svg lucideArrowRight aria-hidden="true" size="18"></svg></button>
+      <button *ngIf="pasoActual === 5" class="ui-button boton-iniciar" type="submit" [disabled]="procesando"><svg lucidePlay aria-hidden="true" size="18"></svg>{{ procesando ? 'Preparando análisis…' : 'Iniciar descubrimiento C4' }}</button>
+    </footer>
+  </form>
+
+  <app-progreso-c4 *ngIf="ejecucion as run" [ejecucion]="run" [avisoRed]="avisoRed" [accionEnCurso]="accionEnCurso" (cancelar)="cancelar()" />
+  <div *ngIf="avisoRed && !ejecucion" class="alert error" role="alert">{{ avisoRed }}</div>
+</main>

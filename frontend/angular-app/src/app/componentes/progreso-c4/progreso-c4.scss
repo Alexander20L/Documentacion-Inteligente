@@ -1,0 +1,49 @@
+:host { display: block; }
+.progreso { padding: 20px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); color: var(--ink-950); box-shadow: var(--shadow-sm); }
+.encabezado, .identidad-progreso, .acciones { display: flex; align-items: center; }
+.encabezado { justify-content: space-between; gap: 18px; }
+.identidad-progreso { min-width: 0; gap: 12px; }
+.identidad-progreso > div { min-width: 0; }
+.identidad-progreso strong { display: block; margin-top: 2px; overflow-wrap: anywhere; font-size: 0.94rem; }
+.encabezado b { flex: 0 0 auto; color: var(--cobalt); font-family: var(--font-mono); font-size: 1rem; }
+.icono-status { width: 40px; height: 40px; display: grid; place-items: center; flex: 0 0 40px; border-radius: 50%; background: var(--cobalt-soft); color: var(--cobalt); }
+.icono-status[data-estado='completado'] { background: var(--success-soft); color: var(--success); }
+.icono-status[data-estado='fallido'], .icono-status[data-estado='cancelado'] { background: var(--danger-soft); color: var(--danger); }
+.icono-status[data-estado='pendiente'], .icono-status[data-estado='revision'] { background: var(--warning-soft); color: var(--warning); }
+.etiquetas-progreso { display: flex; align-items: center; flex-wrap: wrap; gap: 5px 9px; }
+.estado { color: var(--ink-600); font-size: 0.68rem; font-weight: 750; letter-spacing: 0.07em; text-transform: uppercase; }
+.fase { color: var(--cobalt); font-family: var(--font-mono); font-size: 0.65rem; text-transform: capitalize; }
+.barra { height: 8px; margin-top: 16px; overflow: hidden; border-radius: var(--radius-pill); background: var(--paper-deep); }
+.barra span { display: block; height: 100%; border-radius: inherit; background: var(--cobalt); transition: width 350ms ease; }
+.mensaje, .aviso-red, .aviso-inactivo { margin: 12px 0 0; color: var(--ink-600); font-size: 0.86rem; line-height: 1.45; }
+.aviso-red, .aviso-inactivo { padding: 10px 12px; border: 1px solid #e8cc91; border-radius: var(--radius-sm); background: var(--warning-soft); color: #784706; font-weight: 650; }
+.detalles { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1px; margin: 18px 0 0; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--line); }
+.detalles div { min-width: 0; padding: 12px 13px; background: var(--surface-muted); }
+.detalles dt { display: flex; align-items: center; gap: 5px; color: var(--ink-500); font-size: 0.65rem; font-weight: 750; letter-spacing: 0.05em; text-transform: uppercase; }
+.detalles dd { margin: 4px 0 0; overflow-wrap: anywhere; color: var(--ink-800); font-size: 0.82rem; font-weight: 730; }
+.acciones { justify-content: flex-end; gap: 9px; margin-top: 16px; }
+.acciones button { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; border: 1px solid var(--line-strong); border-radius: var(--radius-pill); background: var(--surface); color: var(--ink-800); font-weight: 730; }
+.acciones button:hover:not(:disabled) { border-color: var(--ink-500); background: var(--surface-muted); }
+.acciones .principal { border-color: var(--cobalt); background: var(--cobalt); color: white; }
+.acciones .principal:hover:not(:disabled) { background: var(--cobalt-dark); }
+.acciones .accion-compacta { width: 44px; padding: 0; border-radius: 50%; }
+.compacto { padding: 14px; border-radius: var(--radius-md); box-shadow: none; }
+.compacto .icono-status { width: 34px; height: 34px; flex-basis: 34px; }
+.compacto .identidad-progreso { gap: 9px; }
+.compacto .identidad-progreso strong { font-size: 0.8rem; }
+.compacto .encabezado b { font-size: 0.82rem; }
+.compacto .barra { height: 6px; margin-top: 11px; }
+.compacto .mensaje, .compacto .aviso-red, .compacto .aviso-inactivo { margin-top: 9px; font-size: 0.75rem; }
+.compacto .acciones { margin-top: 10px; }
+.advertencia { border-color: #d9ae54; }
+.girando { animation: giro 1s linear infinite; }
+@keyframes giro { to { transform: rotate(360deg); } }
+
+@media (max-width: 560px) {
+  .encabezado { align-items: flex-start; }
+  .detalles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .acciones:not(:has(.accion-compacta)) { display: grid; grid-template-columns: 1fr; }
+  .acciones:not(:has(.accion-compacta)) button { width: 100%; }
+  .compacto .icono-status { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .girando { animation: none; } }

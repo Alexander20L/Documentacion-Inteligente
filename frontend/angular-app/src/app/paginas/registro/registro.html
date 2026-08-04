@@ -1,78 +1,114 @@
-<div class="pagina-auth">
-  <section class="panel-info">
-    <div class="marca">
-      <div class="logo">DG</div>
+<main class="pagina-auth">
+  <section class="panel-editorial" aria-labelledby="auth-title">
+    <a class="marca" routerLink="/login" aria-label="DocuGraph IA, inicio">
+      <span class="marca-icono"><svg lucideNetwork size="21" aria-hidden="true"></svg></span>
       <span>DocuGraph IA</span>
-    </div>
+    </a>
 
-    <div class="contenido-info">
-      <p class="etiqueta">Nuevo espacio de trabajo</p>
-      <h1>Registra tu cuenta y empieza a analizar repositorios.</h1>
-      <p>
-        Organiza proyectos, conserva sus reportes técnicos y prepara documentación
-        generada con apoyo de inteligencia artificial.
+    <div class="relato">
+      <p class="eyebrow">Un lenguaje común</p>
+      <h1 id="auth-title">La arquitectura cobra valor cuando todo el equipo puede leerla.</h1>
+      <p class="bajada">
+        Crea tu espacio para convertir evidencia técnica en modelos C4 revisables, claros y
+        listos para compartir.
       </p>
     </div>
 
-    <div class="estado">
-      <span></span>
-      Acceso protegido por Supabase
+    <div class="nota-editorial">
+      <span class="numero">02</span>
+      <p><strong>Humano en el circuito.</strong> Cada inferencia se revisa antes de formar parte del modelo publicado.</p>
     </div>
   </section>
 
-  <section class="panel-formulario">
-    <form class="tarjeta-auth">
-      <div class="cabecera-formulario">
-        <h2>Crear cuenta</h2>
-        <p>Completa tus datos para ingresar al sistema.</p>
-      </div>
+  <section class="panel-formulario" aria-labelledby="registro-title">
+    <form class="tarjeta-auth" (ngSubmit)="registrar()">
+      <header class="cabecera-formulario">
+        <p class="eyebrow">Nuevo espacio</p>
+        <h2 id="registro-title">Crear cuenta</h2>
+        <p>Registra tus datos para comenzar el análisis.</p>
+      </header>
 
-      <div class="grupo">
-        <label>Nombre</label>
+      <p id="campos-obligatorios" class="nota-campos">
+        <span class="required-marker" aria-hidden="true">*</span> indica un campo obligatorio.
+      </p>
+
+      <div class="field">
+        <label for="registro-nombre">Nombre <span class="required-marker" aria-hidden="true">*</span></label>
         <input
+          id="registro-nombre"
           type="text"
           placeholder="Tu nombre"
           [(ngModel)]="nombre"
           name="nombre"
+          autocomplete="name"
+          required
+          aria-required="true"
+          aria-describedby="campos-obligatorios"
         />
       </div>
 
-      <div class="grupo">
-        <label>Correo electrónico</label>
+      <div class="field">
+        <label for="registro-correo">Correo electrónico <span class="required-marker" aria-hidden="true">*</span></label>
         <input
+          id="registro-correo"
           type="email"
-          placeholder="usuario@correo.com"
+          placeholder="nombre@organizacion.com"
           [(ngModel)]="correo"
           name="correo"
+          autocomplete="email"
+          inputmode="email"
+          required
+          aria-required="true"
+          aria-describedby="campos-obligatorios"
         />
       </div>
 
-      <div class="grupo">
-        <label>Contraseña</label>
-        <input
-          type="password"
-          placeholder="Crea una contraseña"
-          [(ngModel)]="contrasena"
-          name="contrasena"
-        />
+      <div class="field">
+        <label for="registro-contrasena">Contraseña <span class="required-marker" aria-hidden="true">*</span></label>
+        <div class="control-con-accion">
+          <input
+            id="registro-contrasena"
+            [type]="mostrarContrasena ? 'text' : 'password'"
+            placeholder="Crea una contraseña"
+            [(ngModel)]="contrasena"
+            name="contrasena"
+            autocomplete="new-password"
+            required
+            aria-required="true"
+            aria-describedby="campos-obligatorios"
+          />
+          <button
+            type="button"
+            class="accion-contrasena"
+            (click)="mostrarContrasena = !mostrarContrasena"
+            [attr.aria-label]="mostrarContrasena ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+            [attr.data-tooltip]="mostrarContrasena ? 'Ocultar' : 'Mostrar'"
+            [attr.aria-pressed]="mostrarContrasena"
+          >
+            @if (mostrarContrasena) {
+              <svg lucideEyeOff size="19" aria-hidden="true"></svg>
+            } @else {
+              <svg lucideEye size="19" aria-hidden="true"></svg>
+            }
+          </button>
+        </div>
       </div>
 
-      <p *ngIf="mensaje" class="mensaje-exito">{{ mensaje }}</p>
-      <p *ngIf="error" class="mensaje-error">{{ error }}</p>
+      <p *ngIf="mensaje" class="alert success" role="status">{{ mensaje }}</p>
+      <p *ngIf="error" class="alert error" role="alert">{{ error }}</p>
 
-      <button
-        type="button"
-        class="boton-principal boton-registro"
-        (click)="registrar()"
-        [disabled]="cargando"
-      >
-        {{ cargando ? 'Creando cuenta...' : 'Crear cuenta' }}
+      <button type="submit" class="ui-button boton-envio" [disabled]="cargando" [attr.aria-busy]="cargando">
+        @if (cargando) {
+          <svg class="spinner" lucideLoaderCircle size="19" aria-hidden="true"></svg>
+          Creando cuenta...
+        } @else {
+          Crear cuenta <svg lucideArrowRight size="19" aria-hidden="true"></svg>
+        }
       </button>
 
       <p class="enlace-auth">
-        ¿Ya tienes cuenta?
-        <a routerLink="/login">Iniciar sesión</a>
+        ¿Ya tienes cuenta? <a routerLink="/login">Iniciar sesión</a>
       </p>
     </form>
   </section>
-</div>
+</main>

@@ -52,7 +52,16 @@ def preparar_entorno_graphify() -> dict[str, str]:
     - Si existe GEMINI_API_KEY, también la expone como GOOGLE_API_KEY,
       porque algunas herramientas buscan una u otra.
     """
-    env = os.environ.copy()
+    variables_sistema = {
+        "PATH", "HOME", "USERPROFILE", "TMP", "TEMP", "TMPDIR", "SYSTEMROOT",
+        "COMSPEC", "PATHEXT", "LANG", "LC_ALL", "SSL_CERT_FILE", "REQUESTS_CA_BUNDLE",
+        "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "OLLAMA_HOST",
+    }
+    env = {
+        nombre: valor
+        for nombre, valor in os.environ.items()
+        if nombre.upper() in variables_sistema or nombre in VARIABLES_LLM_SOPORTADAS
+    }
 
     if env.get("GEMINI_API_KEY") and not env.get("GOOGLE_API_KEY"):
         env["GOOGLE_API_KEY"] = env["GEMINI_API_KEY"]
@@ -76,6 +85,8 @@ def validar_configuracion_llm(env: dict[str, str]) -> None:
     """
     Valida que exista al menos una API key compatible con Graphify.
     """
+    if os.getenv("C4_GRAPHIFY_LLM_PROVIDER", os.getenv("C4_LLM_PROVIDER", "ollama")).casefold() == "ollama":
+        return
     tiene_api_key = any(env.get(nombre) for nombre in VARIABLES_LLM_SOPORTADAS)
 
     if not tiene_api_key:
@@ -86,6 +97,26 @@ def validar_configuracion_llm(env: dict[str, str]) -> None:
                 "Configura GEMINI_API_KEY o GOOGLE_API_KEY en backend/.env."
             ),
         )
+
+
+def argumentos_llm_graphify() -> list[str]:
+    provider = os.getenv("C4_GRAPHIFY_LLM_PROVIDER", os.getenv("C4_LLM_PROVIDER", "ollama")).strip().casefold()
+    if provider == "ollama":
+        model = os.getenv("C4_GRAPHIFY_OLLAMA_MODEL", os.getenv("C4_OLLAMA_MODEL", "qwen3:8b"))
+        return ["--backend", "ollama", "--model", model, "--max-concurrency", "1"]
+    return []
+
+
+def argumentos_extraccion_graphify() -> list[str]:
+    provider = os.getenv("C4_GRAPHIFY_LLM_PROVIDER", os.getenv("C4_LLM_PROVIDER", "ollama")).strip().casefold()
+    code_only = os.getenv("C4_GRAPHIFY_LOCAL_CODE_ONLY", "true").casefold() == "true"
+    return ["--code-only"] if provider == "ollama" and code_only else argumentos_llm_graphify()
+
+
+def argumentos_agrupacion_graphify() -> list[str]:
+    provider = os.getenv("C4_GRAPHIFY_LLM_PROVIDER", os.getenv("C4_LLM_PROVIDER", "ollama")).strip().casefold()
+    code_only = os.getenv("C4_GRAPHIFY_LOCAL_CODE_ONLY", "true").casefold() == "true"
+    return ["--no-label"] if provider == "ollama" and code_only else argumentos_llm_graphify()
 
 
 def ejecutar_comando(comando: list[str], cwd: Path, descripcion: str):
@@ -299,6 +330,7 @@ def ejecutar_analisis_repositorio(id_repositorio: str) -> dict[str, Any]:
             "extract",
             ".",
             "--force",
+            *argumentos_extraccion_graphify(),
         ],
         cwd=ruta_analisis,
         descripcion="Extracción de Graphify",
@@ -320,6 +352,7 @@ def ejecutar_analisis_repositorio(id_repositorio: str) -> dict[str, Any]:
             str(graphify_bin),
             "cluster-only",
             ".",
+            *argumentos_agrupacion_graphify(),
         ],
         cwd=ruta_analisis,
         descripcion="Generación de reporte y HTML interactivo de Graphify",
@@ -330,3 +363,38 @@ def ejecutar_analisis_repositorio(id_repositorio: str) -> dict[str, Any]:
         ruta_graphify_out,
         asegurar_outputs_graphify(ruta_graphify_out),
     )
+
+
+def ejecutar_graphify_en_ruta(ruta_analisis: Path) -> Path:
+    """Run Graphify only inside an already isolated working copy."""
+    from configuracion.rutas_c4 import es_repositorio_intento_analisis
+
+    ruta_analisis = ruta_analisis.resolve()
+    if not ruta_analisis.is_dir():
+        raise RuntimeError("La copia de trabajo del repositorio no existe")
+    if not es_repositorio_intento_analisis(ruta_analisis):
+        raise RuntimeError("La ruta de Graphify no es una copia de trabajo C4 válida")
+    graphify_bin = obtener_graphify_bin()
+    if graphify_bin is None:
+        raise RuntimeError("No se encontró Graphify; configura GRAPHIFY_BIN")
+    validar_configuracion_llm(preparar_entorno_graphify())
+    limpiar_carpetas_no_analizables(ruta_analisis)
+    shutil.rmtree(ruta_analisis / "graphify-out", ignore_errors=True)
+    ejecutar_comando(["git", "init"], ruta_analisis, "Inicialización de Git")
+    ejecutar_comando(["git", "add", "-A", "-f"], ruta_analisis, "Registro de archivos en Git")
+    ejecutar_comando(
+        [str(graphify_bin), "extract", ".", "--force", *argumentos_extraccion_graphify()],
+        ruta_analisis,
+        "Extracción de Graphify",
+    )
+    salida = ruta_analisis / "graphify-out"
+    if not salida.is_dir():
+        raise RuntimeError("Graphify no generó graphify-out")
+    ejecutar_comando(
+        [str(graphify_bin), "cluster-only", ".", *argumentos_agrupacion_graphify()],
+        ruta_analisis,
+        "Generación de Graphify",
+    )
+    if not (salida / "graph.json").is_file():
+        raise RuntimeError("Graphify no generó graphify-out/graph.json")
+    return salida

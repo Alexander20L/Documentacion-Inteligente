@@ -1,359 +1,308 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, inject, OnDestroy } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { DestroyRef, Component, inject } from '@angular/core';
+import { FormArray, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
 import {
-  NombreArchivoGraphify,
-  ProyectoHistorial,
-  RepositoriosService,
-} from '../../servicios/repositorios.service';
+  LucideArrowLeft,
+  LucideArrowRight,
+  LucideCheck,
+  LucideFileArchive,
+  LucidePlay,
+  LucidePlus,
+  LucideTrash2,
+  LucideUpload,
+} from '@lucide/angular';
+import { EMPTY, timer } from 'rxjs';
+import { catchError, switchMap } from 'rxjs/operators';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { EjecucionC4 } from '../../modelos/c4.model';
+import { C4Service } from '../../servicios/c4.service';
+import { RepositoriosService } from '../../servicios/repositorios.service';
+import { ProgresoC4 } from '../../componentes/progreso-c4/progreso-c4';
 
-type FaseAnalisis =
-  | 'inicial'
-  | 'subiendo'
-  | 'encolando'
-  | 'analizando'
-  | 'completado'
-  | 'error';
-
-type EstadoProyecto =
-  | ''
-  | 'SUBIDO'
-  | 'PENDIENTE_ANALISIS'
-  | 'ANALIZANDO_GRAPHIFY'
-  | 'GRAPHIFY_COMPLETADO'
-  | 'ERROR_ANALISIS'
-  | string;
+type FilaContexto = FormGroup<{
+  nombre: FormControl<string>;
+  descripcion: FormControl<string>;
+}>;
 
 @Component({
   selector: 'app-analisis-proyecto',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RouterLink,
+    ProgresoC4,
+    LucideArrowLeft,
+    LucideArrowRight,
+    LucideCheck,
+    LucideFileArchive,
+    LucidePlay,
+    LucidePlus,
+    LucideTrash2,
+    LucideUpload,
+  ],
   templateUrl: './analisis-proyecto.html',
   styleUrl: './analisis-proyecto.scss',
 })
-export class AnalisisProyecto implements OnDestroy {
-  private repositoriosService = inject(RepositoriosService);
-  private changeDetectorRef = inject(ChangeDetectorRef);
+export class AnalisisProyecto {
+  private readonly repositoriosService = inject(RepositoriosService);
+  private readonly c4Service = inject(C4Service);
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
-  private pollingId: ReturnType<typeof setInterval> | null = null;
-  private consultandoEstado = false;
-  private componenteDestruido = false;
+  readonly formulario = new FormGroup({
+    nombreSistema: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    descripcion: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    proposito: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    actores: new FormArray<FilaContexto>([]),
+    sistemasExternos: new FormArray<FilaContexto>([]),
+  });
 
   archivoSeleccionado: File | null = null;
-
-  fase: FaseAnalisis = 'inicial';
-
-  idRepositorio = '';
-  estadoProyecto: EstadoProyecto = '';
-
+  pasoActual = 1;
+  pasoMaximo = 1;
+  tieneActores: boolean | null = null;
+  tieneSistemasExternos: boolean | null = null;
+  procesando = false;
   mensaje = '';
   mensajeError = '';
-  mensajeResultado = '';
-
-  urlGrafo = '';
-  urlJson = '';
-  urlReporte = '';
-
-  ngOnDestroy() {
-    this.componenteDestruido = true;
-    this.detenerPolling();
-  }
-
-  get cargando() {
-    return (
-      this.fase === 'subiendo' ||
-      this.fase === 'encolando' ||
-      this.fase === 'analizando'
-    );
-  }
-
-  get puedeAnalizar() {
-    return Boolean(this.archivoSeleccionado) && !this.cargando;
-  }
-
-  get analisisCompletado() {
-    return this.fase === 'completado' || this.estadoProyecto === 'GRAPHIFY_COMPLETADO';
-  }
-
-  get analisisConError() {
-    return this.fase === 'error' || this.estadoProyecto === 'ERROR_ANALISIS';
-  }
-
-  get textoBotonPrincipal() {
-    const textos: Record<FaseAnalisis, string> = {
-      inicial: 'Analizar repositorio',
-      subiendo: 'Subiendo repositorio...',
-      encolando: 'Encolando análisis...',
-      analizando: 'Analizando repositorio...',
-      completado: 'Analizar otro repositorio',
-      error: 'Reintentar análisis',
-    };
-
-    return textos[this.fase];
-  }
-
-  get estadoLegible() {
-    const estados: Record<string, string> = {
-      SUBIDO: 'Repositorio subido',
-      PENDIENTE_ANALISIS: 'Análisis en cola',
-      ANALIZANDO_GRAPHIFY: 'Analizando con Graphify',
-      GRAPHIFY_COMPLETADO: 'Análisis completado',
-      ERROR_ANALISIS: 'Error en el análisis',
-    };
-
-    return estados[this.estadoProyecto] || this.estadoProyecto;
-  }
+  ejecucion: EjecucionC4 | null = null;
+  avisoRed = '';
+  accionEnCurso = false;
 
   seleccionarArchivo(evento: Event) {
-    const input = evento.target as HTMLInputElement;
-
-    if (!input.files || input.files.length === 0) return;
-
-    this.archivoSeleccionado = input.files[0];
-    this.reiniciarEstadoPantalla();
+    this.archivoSeleccionado = (evento.target as HTMLInputElement).files?.item(0) ?? null;
+    this.mensajeError = '';
   }
 
-  subirYAnalizar() {
-    if (!this.archivoSeleccionado) {
-      this.finalizarConError('Selecciona un archivo ZIP primero.');
-      return;
+  agregarActor() {
+    this.formulario.controls.actores.push(this.crearFila());
+  }
+
+  agregarSistemaExterno() {
+    this.formulario.controls.sistemasExternos.push(this.crearFila());
+  }
+
+  quitarActor(indice: number) {
+    this.formulario.controls.actores.removeAt(indice);
+  }
+
+  quitarSistemaExterno(indice: number) {
+    this.formulario.controls.sistemasExternos.removeAt(indice);
+  }
+
+  elegirActores(valor: boolean) {
+    this.tieneActores = valor;
+    this.mensajeError = '';
+    if (!valor) {
+      this.formulario.controls.actores.clear();
+    } else if (this.formulario.controls.actores.length === 0) {
+      this.agregarActor();
+    }
+  }
+
+  elegirSistemasExternos(valor: boolean) {
+    this.tieneSistemasExternos = valor;
+    this.mensajeError = '';
+    if (!valor) {
+      this.formulario.controls.sistemasExternos.clear();
+    } else if (this.formulario.controls.sistemasExternos.length === 0) {
+      this.agregarSistemaExterno();
+    }
+  }
+
+  avanzar() {
+    if (!this.validarPaso(this.pasoActual)) return;
+    this.pasoActual = Math.min(5, this.pasoActual + 1);
+    this.pasoMaximo = Math.max(this.pasoMaximo, this.pasoActual);
+    this.mensajeError = '';
+  }
+
+  retroceder() {
+    this.pasoActual = Math.max(1, this.pasoActual - 1);
+    this.mensajeError = '';
+  }
+
+  irAlPaso(paso: number) {
+    if (paso <= this.pasoMaximo && !this.procesando) {
+      this.pasoActual = paso;
+      this.mensajeError = '';
+    }
+  }
+
+  iniciarAnalisis() {
+    if (this.procesando) return;
+    for (let paso = 1; paso <= 4; paso += 1) {
+      if (!this.validarPaso(paso)) {
+        this.pasoActual = paso;
+        return;
+      }
     }
 
-    this.reiniciarEstadoPantalla();
-
-    this.fase = 'subiendo';
+    const archivo = this.archivoSeleccionado;
+    if (!archivo) return;
+    this.procesando = true;
     this.mensaje = 'Subiendo repositorio...';
-    this.refrescarVista();
+    this.mensajeError = '';
 
-    this.repositoriosService.subirRepositorio(this.archivoSeleccionado).subscribe({
-      next: (respuestaSubida) => {
-        this.idRepositorio = respuestaSubida.id_repositorio;
-        this.estadoProyecto = 'SUBIDO';
-
-        this.fase = 'encolando';
-        this.mensaje = 'Repositorio subido. Encolando análisis...';
-        this.refrescarVista();
-
-        this.encolarAnalisis(
-          respuestaSubida.id_repositorio,
-          respuestaSubida.nombre_archivo
-        );
-      },
-      error: (error) => {
-        this.finalizarConError(
-          this.obtenerMensajeError(error, 'No se pudo subir el repositorio.')
-        );
-      },
-    });
-  }
-
-  abrirGrafo() {
-    this.abrirArchivo('graph.html', 'text/html');
-  }
-
-  abrirJson() {
-    this.abrirArchivo('graph.json', 'application/json');
-  }
-
-  abrirReporte() {
-    this.abrirArchivo('GRAPH_REPORT.md', 'text/markdown');
-  }
-
-  private encolarAnalisis(idRepositorio: string, nombreArchivo: string) {
     this.repositoriosService
-      .analizarRepositorio(idRepositorio, nombreArchivo)
+      .subirRepositorio(archivo)
+      .pipe(
+        switchMap((subida) => {
+          this.mensaje = 'Iniciando descubrimiento arquitectonico...';
+          const valor = this.formulario.getRawValue();
+          return this.c4Service.crearEjecucion(subida.id_repositorio, {
+            contexto: {
+              nombre_sistema: valor.nombreSistema,
+              descripcion: valor.descripcion,
+              proposito: valor.proposito,
+              actores: valor.actores,
+              sistemas_externos: valor.sistemasExternos,
+            },
+          });
+        }),
+        catchError((error) => {
+          this.procesando = false;
+          this.mensaje = '';
+          this.mensajeError = this.obtenerError(error, 'No se pudo iniciar el analisis C4.');
+          return EMPTY;
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((ejecucion) => this.iniciarPolling(ejecucion));
+  }
+
+  private iniciarPolling(inicial: EjecucionC4) {
+    this.ejecucion = inicial;
+    this.mensaje = inicial.mensaje || 'Analizando el repositorio...';
+    timer(0, 4000)
+      .pipe(
+        switchMap(() =>
+          this.c4Service.obtenerEjecucion(inicial.id_repositorio, inicial.id).pipe(
+            catchError((error) => {
+              this.avisoRed = `${this.obtenerError(error, 'No se pudo consultar la ejecucion.')} Se reintentara automaticamente.`;
+              return EMPTY;
+            }),
+          ),
+        ),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((ejecucion) => {
+        this.ejecucion = ejecucion;
+        this.avisoRed = '';
+        this.mensajeError = '';
+        this.mensaje = ejecucion.mensaje || `Fase actual: ${ejecucion.fase}`;
+        if (ejecucion.fase === 'revision') {
+          void this.router.navigate([
+            '/c4',
+            ejecucion.id_repositorio,
+            'ejecuciones',
+            ejecucion.id,
+            'revision',
+          ]);
+        } else if (['completado', 'fallido', 'cancelado'].includes(ejecucion.estado)) {
+          void this.router.navigate([
+            '/c4',
+            ejecucion.id_repositorio,
+            'ejecuciones',
+            ejecucion.id,
+            'resultado',
+          ]);
+        }
+      });
+  }
+
+  cancelar() {
+    if (!this.ejecucion || this.accionEnCurso) return;
+    if (!globalThis.confirm('¿Cancelar este análisis? El progreso del intento actual se perderá.')) return;
+    this.accionEnCurso = true;
+    this.c4Service
+      .cancelarEjecucion(this.ejecucion.id_repositorio, this.ejecucion.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (respuestaAnalisis) => {
-          this.idRepositorio = respuestaAnalisis.id_repositorio;
-          this.estadoProyecto =
-            respuestaAnalisis.estado || 'PENDIENTE_ANALISIS';
-
-          this.fase = 'analizando';
-          this.mensaje = 'El análisis fue encolado correctamente.';
-          this.refrescarVista();
-
-          this.iniciarPollingEstado();
+        next: (ejecucion) => {
+          this.ejecucion = ejecucion;
+          this.accionEnCurso = false;
+          void this.router.navigate([
+            '/c4',
+            ejecucion.id_repositorio,
+            'ejecuciones',
+            ejecucion.id,
+            'resultado',
+          ]);
         },
         error: (error) => {
-          this.finalizarConError(
-            this.obtenerMensajeError(error, 'No se pudo analizar el repositorio.')
-          );
+          this.accionEnCurso = false;
+          this.mensajeError = this.obtenerError(error, 'No se pudo cancelar la ejecucion.');
         },
       });
   }
 
-  private iniciarPollingEstado() {
-    this.detenerPolling();
-
-    this.fase = 'analizando';
-    this.refrescarVista();
-
-    this.consultarEstadoProyecto();
-    this.pollingId = setInterval(() => this.consultarEstadoProyecto(), 4000);
+  private crearFila(): FilaContexto {
+    return new FormGroup({
+      nombre: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+      descripcion: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    });
   }
 
-  private detenerPolling() {
-    if (this.pollingId) {
-      clearInterval(this.pollingId);
-      this.pollingId = null;
+  private validarPaso(paso: number) {
+    if (paso === 1) {
+      if (!this.archivoSeleccionado) {
+        this.mensajeError = 'Selecciona el archivo ZIP que quieres analizar.';
+        return false;
+      }
+      if (!this.archivoSeleccionado.name.toLowerCase().endsWith('.zip')) {
+        this.mensajeError = 'El repositorio debe estar contenido en un archivo ZIP.';
+        return false;
+      }
     }
+
+    if (paso === 2) {
+      const controles = [
+        this.formulario.controls.nombreSistema,
+        this.formulario.controls.descripcion,
+        this.formulario.controls.proposito,
+      ];
+      controles.forEach((control) => control.markAsTouched());
+      if (controles.some((control) => control.invalid)) {
+        this.mensajeError = 'Completa el nombre, la descripción y el propósito del sistema.';
+        return false;
+      }
+    }
+
+    if (paso === 3) {
+      if (this.tieneActores === null) {
+        this.mensajeError = 'Indica si hay personas o roles que usan el sistema.';
+        return false;
+      }
+      this.formulario.controls.actores.markAllAsTouched();
+      if (this.tieneActores && (this.formulario.controls.actores.length === 0 || this.formulario.controls.actores.invalid)) {
+        this.mensajeError = 'Completa al menos un actor o selecciona “No”.';
+        return false;
+      }
+    }
+
+    if (paso === 4) {
+      if (this.tieneSistemasExternos === null) {
+        this.mensajeError = 'Indica si el sistema se integra con servicios o sistemas externos.';
+        return false;
+      }
+      this.formulario.controls.sistemasExternos.markAllAsTouched();
+      if (
+        this.tieneSistemasExternos &&
+        (this.formulario.controls.sistemasExternos.length === 0 || this.formulario.controls.sistemasExternos.invalid)
+      ) {
+        this.mensajeError = 'Completa al menos una integración o selecciona “No”.';
+        return false;
+      }
+    }
+
+    return true;
   }
 
-  private consultarEstadoProyecto() {
-    if (!this.idRepositorio || this.consultandoEstado) return;
-
-    this.consultandoEstado = true;
-
-    this.repositoriosService.obtenerEstadoProyecto(this.idRepositorio).subscribe({
-      next: (respuestaEstado) => {
-        this.consultandoEstado = false;
-
-        const proyecto = respuestaEstado.proyecto;
-        const tareaAnalisis = respuestaEstado.tareas.find(
-          (tarea) => tarea.tipo === 'analisis'
-        );
-
-        this.actualizarEstadoAnalisis(proyecto);
-
-        if (
-          tareaAnalisis?.estado === 'fallido' ||
-          proyecto.estado === 'ERROR_ANALISIS'
-        ) {
-          this.finalizarConError(
-            proyecto.error_ultimo ||
-              tareaAnalisis?.error_ultimo ||
-              'El análisis falló.'
-          );
-          return;
-        }
-
-        if (
-          tareaAnalisis?.estado === 'completado' ||
-          proyecto.estado === 'GRAPHIFY_COMPLETADO'
-        ) {
-          this.finalizarComoCompletado();
-          return;
-        }
-
-        this.fase = 'analizando';
-        this.mensaje = this.obtenerMensajeProceso(proyecto.estado);
-        this.refrescarVista();
-      },
-      error: (error) => {
-        this.consultandoEstado = false;
-
-        this.finalizarConError(
-          this.obtenerMensajeError(
-            error,
-            'No se pudo consultar el estado del análisis.'
-          )
-        );
-      },
-    });
-  }
-
-  private actualizarEstadoAnalisis(proyecto: ProyectoHistorial) {
-    const archivos = proyecto.archivos || {};
-    const disponibles = proyecto.disponibles || {};
-    const mensajes = proyecto.mensajes || {};
-
-    this.idRepositorio = proyecto.id_repositorio;
-    this.estadoProyecto = proyecto.estado;
-
-    this.urlGrafo = archivos.html || proyecto.url_graph_html || '';
-    this.urlJson = archivos.json || proyecto.url_graph_json || '';
-    this.urlReporte = archivos.reporte || proyecto.url_reporte || '';
-
-    this.mensajeResultado = [
-      !disponibles.html ? mensajes.html : '',
-      !disponibles.reporte ? mensajes.reporte : '',
-    ]
-      .filter(Boolean)
-      .join(' ');
-  }
-
-  private finalizarComoCompletado() {
-    this.detenerPolling();
-
-    this.fase = 'completado';
-    this.estadoProyecto = 'GRAPHIFY_COMPLETADO';
-    this.mensaje = 'Análisis completado correctamente.';
-    this.mensajeError = '';
-
-    this.refrescarVista();
-  }
-
-  private finalizarConError(mensaje: string) {
-    this.detenerPolling();
-
-    this.fase = 'error';
-    this.mensaje = '';
-    this.mensajeError = mensaje || 'Ocurrió un error inesperado durante el análisis.';
-
-    this.refrescarVista();
-  }
-
-  private abrirArchivo(nombreArchivo: NombreArchivoGraphify, tipo: string) {
-    if (!this.idRepositorio) return;
-
-    this.repositoriosService
-      .obtenerArchivoGraphify(this.idRepositorio, nombreArchivo)
-      .subscribe({
-        next: (blob) => {
-          const url = URL.createObjectURL(new Blob([blob], { type: tipo }));
-
-          window.open(url, '_blank', 'noopener');
-
-          setTimeout(() => URL.revokeObjectURL(url), 60000);
-        },
-        error: (error) => {
-          this.mensajeError = this.obtenerMensajeError(
-            error,
-            'No se pudo abrir el archivo solicitado.'
-          );
-
-          this.refrescarVista();
-        },
-      });
-  }
-
-  private obtenerMensajeProceso(estado: string) {
-    const mensajes: Record<string, string> = {
-      SUBIDO: 'Repositorio subido. Preparando análisis...',
-      PENDIENTE_ANALISIS: 'El análisis está en cola.',
-      ANALIZANDO_GRAPHIFY: 'Graphify está analizando el repositorio.',
-    };
-
-    return mensajes[estado] || `Estado actual: ${estado}`;
-  }
-
-  private reiniciarEstadoPantalla() {
-    this.detenerPolling();
-
-    this.consultandoEstado = false;
-    this.fase = 'inicial';
-
-    this.idRepositorio = '';
-    this.estadoProyecto = '';
-
-    this.mensaje = '';
-    this.mensajeError = '';
-    this.mensajeResultado = '';
-
-    this.urlGrafo = '';
-    this.urlJson = '';
-    this.urlReporte = '';
-
-    this.refrescarVista();
-  }
-
-  private refrescarVista() {
-    if (this.componenteDestruido) return;
-
-    this.changeDetectorRef.detectChanges();
-  }
-
-  private obtenerMensajeError(error: any, fallback: string) {
-    return error?.error?.detail || error?.message || fallback;
+  private obtenerError(error: unknown, fallback: string) {
+    const respuesta = error as { error?: { detail?: string }; message?: string };
+    return respuesta.error?.detail || respuesta.message || fallback;
   }
 }

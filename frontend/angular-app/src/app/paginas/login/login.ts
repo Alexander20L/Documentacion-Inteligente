@@ -2,12 +2,28 @@ import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import {
+  LucideArrowRight,
+  LucideEye,
+  LucideEyeOff,
+  LucideLoaderCircle,
+  LucideNetwork,
+} from '@lucide/angular';
 import { AutenticacionService } from '../../servicios/autenticacion.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    LucideArrowRight,
+    LucideEye,
+    LucideEyeOff,
+    LucideLoaderCircle,
+    LucideNetwork,
+  ],
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })
@@ -18,6 +34,7 @@ export class Login {
 
   correo = '';
   contrasena = '';
+  mostrarContrasena = false;
   cargando = false;
   error = '';
 

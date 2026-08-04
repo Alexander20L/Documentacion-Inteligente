@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 NOMBRE_DOCUMENTACION_MARKDOWN = "DOCUMENTACION_TECNICA.md"
 NOMBRE_DOCUMENTACION_WORD = "DOCUMENTACION_TECNICA.docx"
 
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
 
 MAX_NODOS_PROMPT = int(os.getenv("MAX_NODOS_PROMPT", "120"))
 MAX_RELACIONES_PROMPT = int(os.getenv("MAX_RELACIONES_PROMPT", "180"))

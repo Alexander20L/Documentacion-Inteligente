@@ -1,56 +1,15 @@
 .pagina-documentacion {
-  min-height: 100vh;
-  padding: 42px;
-  background: #eef2f7;
-  color: #0f172a;
+  min-height: calc(100vh - 1px);
 }
 
-.cabecera {
-  display: flex;
-  justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 28px;
-}
-
-.etiqueta {
-  margin: 0 0 10px;
-  color: #2563eb;
-  font-weight: 900;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  font-size: 0.78rem;
-}
-
-.cabecera h1 {
-  margin: 0;
-  font-size: 2.6rem;
-}
-
-.boton-volver {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  padding: 0 16px;
-  border-radius: 14px;
-  background: #0f172a;
-  color: white;
-  font-weight: 800;
-  text-decoration: none;
-}
-
-.tarjeta {
+.documento {
   padding: 30px;
-  border-radius: 24px;
-  background: white;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
 }
 
 pre {
   margin: 0;
   white-space: pre-wrap;
   line-height: 1.7;
-  font-family: Arial, sans-serif;
-  color: #1e293b;
+  font-family: var(--font-ui);
+  color: var(--ink-800);
 }

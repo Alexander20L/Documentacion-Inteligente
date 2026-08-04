@@ -1,155 +1,95 @@
-<div class="pagina-historial">
-  <header class="cabecera">
+<main class="page pagina-historial">
+  <header class="page-header">
     <div>
-      <p class="etiqueta">Historial</p>
-      <h1>Proyectos analizados</h1>
-      <p>
-        Consulta los repositorios procesados y accede a los artefactos
-        generados por Graphify.
-      </p>
+      <span class="eyebrow">Historial C4</span>
+      <h1>Ejecuciones arquitectónicas</h1>
+      <p>Retoma revisiones pendientes y consulta los resultados de cada ejecución.</p>
     </div>
-
-    <a routerLink="/dashboard" class="boton-volver">
-      Volver al dashboard
-    </a>
+    <div class="acciones-cabecera">
+      <button
+        type="button"
+        class="icon-button"
+        data-tooltip="Actualizar historial"
+        aria-label="Actualizar historial"
+        [disabled]="actualizando"
+        (click)="actualizarHistorial()"
+      >
+        <svg lucideRefreshCw aria-hidden="true" size="18" [class.girando]="actualizando"></svg>
+      </button>
+      <a routerLink="/dashboard" class="ui-button secondary">
+        <svg lucideArrowLeft aria-hidden="true" size="18"></svg>
+        Volver al dashboard
+      </a>
+    </div>
   </header>
 
-  <section class="tarjeta">
-    <div *ngIf="mensaje" class="mensaje mensaje-info">
-      {{ mensaje }}
+  <section class="contenido-historial" aria-labelledby="titulo-lista">
+    <div class="titulo-lista">
+      <div>
+        <p class="sobrelinea">Registro de actividad</p>
+        <h2 id="titulo-lista">Tus análisis</h2>
+      </div>
+      <span *ngIf="!cargando" class="contador">{{ ejecuciones.length }} {{ ejecuciones.length === 1 ? 'ejecución' : 'ejecuciones' }}</span>
     </div>
 
-    <div *ngIf="mensajeError" class="mensaje mensaje-error">
-      {{ mensajeError }}
+    <div *ngIf="mensajeError" class="alert error error-historial" role="alert">
+      <svg lucideCircleX aria-hidden="true" size="19"></svg>
+      <span>{{ mensajeError }}</span>
+      <button type="button" class="reintento-inline" [disabled]="actualizando" (click)="actualizarHistorial()">
+        <svg lucideRefreshCw aria-hidden="true" size="16"></svg> Reintentar
+      </button>
     </div>
 
-    <div *ngIf="cargando" class="sin-datos">
-      <h2>Cargando historial...</h2>
-      <p>Estamos consultando tus proyectos analizados.</p>
+    <div *ngIf="cargando" class="estado-vacio surface" role="status" aria-live="polite">
+      <span class="icono-estado"><svg lucideLoaderCircle class="girando" aria-hidden="true" size="28"></svg></span>
+      <h2>Cargando historial</h2>
+      <p>Consultando tus ejecuciones C4.</p>
     </div>
 
-    <div *ngIf="!cargando && proyectos.length === 0" class="sin-datos">
-      <h2>Aún no hay proyectos analizados</h2>
-      <p>
-        Cuando analices un repositorio, aparecerá aquí automáticamente.
-      </p>
-
-      <a routerLink="/analisis-proyecto" class="boton-primario">
-        Analizar primer proyecto
+    <div *ngIf="!cargando && ejecuciones.length === 0 && !mensajeError" class="estado-vacio surface">
+      <span class="icono-estado"><svg lucideHistory aria-hidden="true" size="28"></svg></span>
+      <h2>Aún no hay ejecuciones C4</h2>
+      <p>Inicia el descubrimiento arquitectónico de tu primer repositorio.</p>
+      <a routerLink="/analisis-proyecto" class="ui-button">
+        <svg lucideScanSearch aria-hidden="true" size="18"></svg> Nueva ejecución
       </a>
     </div>
 
-    <div *ngIf="!cargando && proyectos.length > 0" class="lista-proyectos">
-      <article
-        class="proyecto-card"
-        *ngFor="let proyecto of proyectos; trackBy: trackByRepositorio"
-      >
-        <div class="proyecto-principal">
-          <div class="icono">ZIP</div>
-
+    <div *ngIf="!cargando && ejecuciones.length" class="lista-proyectos">
+      <article class="proyecto-card surface" *ngFor="let ejecucion of ejecuciones; trackBy: trackByEjecucion">
+        <div class="proyecto-cabecera">
+          <span class="icono-repositorio"><svg lucideFolderGit2 aria-hidden="true" size="21"></svg></span>
           <div class="proyecto-info">
-            <h2>{{ proyecto.nombre_archivo || 'Repositorio sin nombre' }}</h2>
-            <p>{{ proyecto.id_repositorio }}</p>
-
-            <div class="metadatos">
-              <span>
-                {{ fechaProyecto(proyecto) | date:'short' }}
-              </span>
-            </div>
+            <h3>{{ ejecucion.nombre_sistema || ejecucion.nombre_repositorio }}</h3>
+            <p>{{ ejecucion.nombre_repositorio }}</p>
           </div>
+          <span class="estado" [ngClass]="claseEstado(ejecucion.estado)">
+            <ng-container [ngSwitch]="iconoEstado(ejecucion.estado)">
+              <svg lucideCircleCheck *ngSwitchCase="'completado'" aria-hidden="true" size="15"></svg>
+              <svg lucideCircleX *ngSwitchCase="'error'" aria-hidden="true" size="15"></svg>
+              <svg lucideCircleDashed *ngSwitchCase="'pendiente'" aria-hidden="true" size="15"></svg>
+              <svg lucideLoaderCircle *ngSwitchDefault class="girando" aria-hidden="true" size="15"></svg>
+            </ng-container>
+            {{ estadoLegible(ejecucion.estado) }}
+          </span>
         </div>
 
-        <div class="estados">
-          <div class="estado-bloque">
-            <span>Análisis</span>
-            <strong
-              class="estado"
-              [ngClass]="claseEstadoAnalisis(proyecto.estado)"
-            >
-              {{ estadoAnalisisLegible(proyecto.estado) }}
-            </strong>
-          </div>
+        <dl class="metadatos">
+          <div><dt><svg lucideCalendarDays aria-hidden="true" size="15"></svg> Creada</dt><dd>{{ ejecucion.creado_en | date: 'short' }}</dd></div>
+          <div><dt><svg lucideClock3 aria-hidden="true" size="15"></svg> Actualizada</dt><dd>{{ ejecucion.actualizado_en | date: 'short' }}</dd></div>
+          <div><dt>Fase</dt><dd>{{ ejecucion.fase }}</dd></div>
+        </dl>
 
-          <div class="estado-bloque">
-            <span>Documentación</span>
-            <strong
-              class="estado"
-              [ngClass]="claseEstadoDocumentacion(proyecto.estado_documentacion)"
-            >
-              {{ estadoDocumentacionLegible(proyecto.estado_documentacion) }}
-            </strong>
-          </div>
-        </div>
+        <p *ngIf="ejecucion.error" class="alert error error-ejecucion" role="alert">{{ ejecucion.error }}</p>
+        <app-progreso-c4 *ngIf="estaActiva(ejecucion)" class="progreso-compacto" [ejecucion]="ejecucion" [compacto]="true" />
 
-        <p *ngIf="proyecto.error_ultimo" class="mensaje mensaje-error">
-          {{ proyecto.error_ultimo }}
-        </p>
-
-        <div class="acciones">
-          <button
-            type="button"
-            *ngIf="proyecto.archivos.html"
-            class="accion accion-principal"
-            (click)="abrirGrafo(proyecto.id_repositorio)"
-          >
-            Ver grafo
-          </button>
-
-          <button
-            type="button"
-            *ngIf="proyecto.archivos.json"
-            class="accion"
-            (click)="abrirJson(proyecto.id_repositorio)"
-          >
-            Ver JSON
-          </button>
-
-          <button
-            type="button"
-            *ngIf="proyecto.archivos.reporte"
-            class="accion"
-            (click)="abrirReporte(proyecto.id_repositorio)"
-          >
-            Ver reporte
-          </button>
-
-          <button
-            type="button"
-            class="accion accion-documentacion"
-            (click)="generarDocumentacion(proyecto)"
-            [disabled]="
-              proyectoProcesando === proyecto.id_repositorio ||
-              !puedeGenerarDocumentacion(proyecto)
-            "
-          >
-            {{ textoBotonDocumentacion(proyecto) }}
-          </button>
-
-          <a
-            *ngIf="puedeVerDocumentacion(proyecto)"
-            [routerLink]="['/documentacion', proyecto.id_repositorio]"
-            class="accion accion-ver"
-          >
-            Ver documentación
+        <footer class="pie-tarjeta">
+          <a class="accion-ejecucion" [routerLink]="rutaPrincipal(ejecucion)">
+            {{ textoAccion(ejecucion) }}
+            <svg lucideArrowRight aria-hidden="true" size="18"></svg>
           </a>
-
-          <button
-            *ngIf="puedeDescargarWord(proyecto)"
-            type="button"
-            class="accion accion-word"
-            (click)="descargarWord(proyecto.id_repositorio)"
-          >
-            Descargar Word
-          </button>
-        </div>
-
-        <p
-          *ngIf="proyecto.archivos.html && proyecto.mensajes.html"
-          class="mensaje mensaje-advertencia"
-        >
-          {{ proyecto.mensajes.html }}
-        </p>
+        </footer>
       </article>
     </div>
   </section>
-</div>
+</main>

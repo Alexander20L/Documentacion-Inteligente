@@ -1,0 +1,50 @@
+<a class="skip-link" href="#contenido-principal">Saltar al contenido</a>
+
+<div class="shell" [class.menu-abierto]="menuAbierto()">
+  <header class="mobile-bar">
+    <a routerLink="/dashboard" class="brand compacta" (click)="cerrarMenu()">
+      <span class="brand-mark"><svg lucideNetwork size="19"></svg></span>
+      <strong>DocuGraph</strong>
+    </a>
+    <button
+      type="button"
+      class="icon-button"
+      [attr.aria-label]="menuAbierto() ? 'Cerrar menú' : 'Abrir menú'"
+      [attr.aria-expanded]="menuAbierto()"
+      (click)="menuAbierto.set(!menuAbierto())"
+    >
+      @if (menuAbierto()) { <svg lucideX size="20"></svg> } @else { <svg lucideMenu size="20"></svg> }
+    </button>
+  </header>
+
+  <aside class="sidebar" aria-label="Navegación principal">
+    <a routerLink="/dashboard" class="brand" (click)="cerrarMenu()">
+      <span class="brand-mark"><svg lucideNetwork size="22"></svg></span>
+      <span><strong>DocuGraph IA</strong><small>Arquitectura trazable</small></span>
+    </a>
+
+    <nav>
+      <span class="nav-label">Espacio de trabajo</span>
+      <a routerLink="/dashboard" routerLinkActive="activo" ariaCurrentWhenActive="page" (click)="cerrarMenu()">
+        <svg lucideLayoutDashboard size="19"></svg><span>Resumen</span>
+      </a>
+      <a routerLink="/analisis-proyecto" routerLinkActive="activo" ariaCurrentWhenActive="page" (click)="cerrarMenu()">
+        <svg lucideScanSearch size="19"></svg><span>Nueva ejecución</span>
+      </a>
+      <a routerLink="/historial-proyectos" routerLinkActive="activo" ariaCurrentWhenActive="page" (click)="cerrarMenu()">
+        <svg lucideHistory size="19"></svg><span>Historial C4</span>
+      </a>
+    </nav>
+
+    <div class="session">
+      <span class="avatar">{{ (usuario()?.nombre || 'U').charAt(0).toUpperCase() }}</span>
+      <span class="session-copy"><strong>{{ usuario()?.nombre || 'Usuario' }}</strong><small>{{ usuario()?.correo }}</small></span>
+      <button type="button" class="icon-button" data-tooltip="Cerrar sesión" aria-label="Cerrar sesión" (click)="cerrarSesion()">
+        <svg lucideLogOut size="18"></svg>
+      </button>
+    </div>
+  </aside>
+
+  <button class="backdrop" type="button" aria-label="Cerrar menú" (click)="cerrarMenu()"></button>
+  <main id="contenido-principal" class="shell-content"><router-outlet></router-outlet></main>
+</div>
