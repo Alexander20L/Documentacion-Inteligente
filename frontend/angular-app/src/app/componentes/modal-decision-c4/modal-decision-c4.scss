@@ -1,0 +1,18 @@
+.capa { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(8, 20, 30, .55); z-index: 60; padding: 20px; }
+.modal { width: min(480px, 100%); border-radius: 16px; background: #fff; box-shadow: 0 20px 60px rgba(0,0,0,.3); overflow: hidden; }
+.cabecera { display: flex; align-items: center; gap: 14px; padding: 18px 20px; background: var(--surface-muted); }
+.icono { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; color: #fff; }
+.icono.aprobar { background: #1e7a46; }
+.icono.rechazar { background: #b23a48; }
+h3 { margin: 0; font-size: 1rem; color: var(--ink-900); }
+.nombre { margin: 3px 0 0; font-size: .8rem; color: var(--ink-600); overflow-wrap: anywhere; }
+.cuerpo { padding: 20px; }
+.aviso { display: flex; gap: 10px; margin: 0; padding: 12px 14px; border-radius: 10px; background: #fdf6e8; color: #7a5410; font-size: .86rem; line-height: 1.5; }
+.aviso svg { flex: 0 0 auto; margin-top: 2px; }
+.pie { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--line); }
+.cancelar, .confirmar { padding: 9px 18px; border-radius: 9px; font-weight: 800; font-size: .84rem; cursor: pointer; border: none; }
+.cancelar { background: #eef1f4; color: #405064; }
+.confirmar { color: #fff; }
+.confirmar.aprobar { background: #1e7a46; }
+.confirmar.rechazar { background: #b23a48; }
+.cancelar:disabled, .confirmar:disabled { opacity: .6; cursor: default; }

@@ -7,6 +7,9 @@
 h1 { max-width: 760px; margin: 0; font-family: var(--font-ui); font-size: clamp(2.25rem, 4vw, 3.6rem); font-weight: 740; letter-spacing: -.045em; line-height: 1.04; }
 .bajada { max-width: 700px; margin: 12px 0 0; color: var(--ink-600); font-size: 1rem; line-height: 1.6; }
 .boton-volver, button { min-height: 44px; }
+.acciones-cabecera { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.boton-explorar { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 44px; padding: 0 16px; border: 1px solid #116466; border-radius: 999px; background: #116466; color: #fff; font-weight: 800; text-decoration: none; white-space: nowrap; }
+.boton-explorar:hover { background: #0b4c4e; }
 .boton-volver, .reintento-carga button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; padding: 0 16px; border: 1px solid #172033; border-radius: 999px; background: transparent; color: #172033; font-weight: 800; text-decoration: none; white-space: nowrap; }
 svg { width: 18px; height: 18px; }
 .contenido { display: grid; gap: 22px; }

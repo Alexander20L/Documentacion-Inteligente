@@ -45,6 +45,33 @@ from servicios.semantic_agent_pipeline import run_semantic_agent_pipeline, sanit
 Heartbeat = Callable[[int, str, str | None, str | None, int | None, int | None], None]
 
 
+def filtrar_diagramas_publicados(registros: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Devuelve los diagramas SVG del modelo con su origen (plantuml/mermaid).
+
+    Mermaid es una exportación opcional para documentación; el frontend decide
+    si mostrarla como diagrama oficial según el origen.
+    """
+    resultados = []
+    for item in registros:
+        if item["tipo"] != "diagrama" or item["metadata"]["formato"] != "svg":
+            continue
+        ruta = item["metadata"].get("ruta_logica", "")
+        if "mermaid/" in ruta:
+            origen = "mermaid"
+        elif "plantuml/" in ruta:
+            origen = "plantuml"
+        else:
+            origen = None
+        resultados.append({
+            "id": item["id"],
+            "nombre": item["nombre"],
+            "nivel": item["metadata"].get("nivel") or "c4",
+            "formato": item["metadata"]["formato"],
+            "origen": origen,
+        })
+    return resultados
+
+
 def _sin_heartbeat(
     _progreso: int,
     _fase: str,
@@ -450,11 +477,7 @@ def ejecutar_publicacion_c4(tarea: dict[str, Any], heartbeat: Heartbeat = _sin_h
         "fase": "completado",
         "validacion": reporte,
         "artefactos": [{"id": item["id"], "nombre": item["nombre"], "tipo": item["tipo"]} for item in registros],
-        "diagramas": [
-            {"id": item["id"], "nombre": item["nombre"], "nivel": item["metadata"].get("nivel") or "c4", "formato": item["metadata"]["formato"]}
-            for item in registros
-            if item["tipo"] == "diagrama" and item["metadata"]["formato"] == "svg"
-        ],
+        "diagramas": filtrar_diagramas_publicados(registros),
     }
     heartbeat(100, "completado", "completado", "Publicación C4 completada", len(rutas), len(rutas))
     return final

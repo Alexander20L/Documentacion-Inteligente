@@ -99,6 +99,7 @@ class DiagramaC4(ModeloC4):
     nombre: str
     nivel: str
     formato: str | None = None
+    origen: str | None = None
 
 
 class ProgresoTareaC4(ModeloC4):

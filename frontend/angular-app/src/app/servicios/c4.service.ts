@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import {
   CrearEjecucionC4,
   EjecucionC4,
+  ExploradorC4,
   GuardarRevisionC4,
   HistorialC4,
   RevisionC4,
@@ -19,12 +20,20 @@ export class C4Service {
   }
 
   obtenerEjecucion(idRepositorio: string, idEjecucion: string) {
-    return this.http.get<EjecucionC4>(`${this.ejecucionesUrl(idRepositorio)}/${idEjecucion}`);
+    return this.http.get<EjecucionC4>(
+      `${this.ejecucionesUrl(idRepositorio)}/${idEjecucion}${this.cacheBuster()}`,
+    );
   }
 
   obtenerRevision(idRepositorio: string, idEjecucion: string) {
     return this.http.get<RevisionC4>(
-      `${this.ejecucionesUrl(idRepositorio)}/${idEjecucion}/revision`,
+      `${this.ejecucionesUrl(idRepositorio)}/${idEjecucion}/revision${this.cacheBuster()}`,
+    );
+  }
+
+  obtenerExplorador(idRepositorio: string, idEjecucion: string) {
+    return this.http.get<ExploradorC4>(
+      `${this.ejecucionesUrl(idRepositorio)}/${idEjecucion}/explorador${this.cacheBuster()}`,
     );
   }
 
@@ -67,7 +76,18 @@ export class C4Service {
     );
   }
 
+  descargarArtefactoSvg(idRepositorio: string, idEjecucion: string, idArtefacto: string) {
+    return this.http.get(
+      `${this.ejecucionesUrl(idRepositorio)}/${idEjecucion}/artefactos/${encodeURIComponent(idArtefacto)}`,
+      { responseType: 'text' },
+    );
+  }
+
   private ejecucionesUrl(idRepositorio: string) {
     return `${this.repositoriosUrl}/${idRepositorio}/c4/ejecuciones`;
+  }
+
+  private cacheBuster() {
+    return `?t=${Date.now()}`;
   }
 }

@@ -8,9 +8,14 @@
         publicar.
       </p>
     </div>
-    <a routerLink="/historial-proyectos" class="boton-volver">
-      <svg lucideArrowLeft aria-hidden="true"></svg><span>Volver al historial</span>
-    </a>
+    <div class="acciones-cabecera">
+      <a class="boton-explorar" *ngIf="revisionCargada" [routerLink]="['/c4', idRepositorio, 'ejecuciones', idEjecucion, 'explorador']">
+        <svg lucideNetwork aria-hidden="true"></svg><span>Explorar modelo</span>
+      </a>
+      <a routerLink="/historial-proyectos" class="boton-volver">
+        <svg lucideArrowLeft aria-hidden="true"></svg><span>Volver al historial</span>
+      </a>
+    </div>
   </header>
 
   <ng-container *ngIf="ejecucion as run">

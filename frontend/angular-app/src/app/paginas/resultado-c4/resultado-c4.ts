@@ -1,14 +1,22 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, inject, OnDestroy, OnInit } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  DestroyRef,
+  ElementRef,
+  inject,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+} from '@angular/core';
 import { RouterLink, ActivatedRoute } from '@angular/router';
-import { EMPTY, timer } from 'rxjs';
-import { catchError, switchMap, takeWhile } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ArtefactoC4, DiagramaC4, EjecucionC4 } from '../../modelos/c4.model';
 import { C4Service } from '../../servicios/c4.service';
 import { ProgresoC4 } from '../../componentes/progreso-c4/progreso-c4';
 import {
   LucideArrowLeft,
+  LucideCheck,
   LucideDownload,
   LucideExternalLink,
   LucideFileArchive,
@@ -16,7 +24,9 @@ import {
   LucideFileText,
   LucideImage,
   LucideLoaderCircle,
+  LucideNetwork,
   LucidePackageOpen,
+  LucideX,
   LucideZoomIn,
 } from '@lucide/angular';
 
@@ -56,6 +66,7 @@ export function agruparArtefactos(artefactos: ArtefactoC4[]): GrupoArtefactosC4[
     RouterLink,
     ProgresoC4,
     LucideArrowLeft,
+    LucideCheck,
     LucideDownload,
     LucideExternalLink,
     LucideFileArchive,
@@ -63,7 +74,9 @@ export function agruparArtefactos(artefactos: ArtefactoC4[]): GrupoArtefactosC4[
     LucideFileText,
     LucideImage,
     LucideLoaderCircle,
+    LucideNetwork,
     LucidePackageOpen,
+    LucideX,
     LucideZoomIn,
   ],
   templateUrl: './resultado-c4.html',
@@ -73,10 +86,15 @@ export class ResultadoC4 implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly c4Service = inject(C4Service);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly urls = new Set<string>();
+  private intervaloPolling: number | null = null;
+  private activo = false;
 
   readonly idRepositorio = this.route.snapshot.paramMap.get('idRepositorio') ?? '';
   readonly idEjecucion = this.route.snapshot.paramMap.get('idEjecucion') ?? '';
+
+  @ViewChild('imgModal') private imgModal?: ElementRef<HTMLImageElement>;
 
   ejecucion: EjecucionC4 | null = null;
   diagramas: DiagramaVisible[] = [];
@@ -86,7 +104,16 @@ export class ResultadoC4 implements OnInit, OnDestroy {
   avisoRed = '';
   accionEnCurso = false;
   diagramasConError: string[] = [];
-
+  pestanaArtefactos = 'c4';
+  pestanaDiagramas = 'context';
+  diagramaAbierto: DiagramaVisible | null = null;
+  zoomModal = 1;
+  panX = 0;
+  panY = 0;
+  private arrastrandoModal = false;
+  private ultimoXModal = 0;
+  private ultimoYModal = 0;
+  readonly Math = Math;
   ngOnInit() {
     if (!this.idRepositorio || !this.idEjecucion) {
       this.cargando = false;
@@ -94,11 +121,71 @@ export class ResultadoC4 implements OnInit, OnDestroy {
       return;
     }
 
-    this.iniciarPolling();
+    this.consultarEjecucion();
+    this.intervaloPolling = window.setInterval(() => this.consultarEjecucion(), 4000);
+    this.registrarReintentoAlVolverVisible();
+    window.setTimeout(() => {
+      if (this.cargando) {
+        this.cargando = false;
+        this.mensajeError =
+          'La petición de la ejecución tardó demasiado. Revisa que el backend esté activo en http://127.0.0.1:8000.';
+        this.changeDetector.detectChanges();
+      }
+    }, 15000);
+  }
+
+  private consultarEjecucion() {
+    this.c4Service
+      .obtenerEjecucion(this.idRepositorio, this.idEjecucion)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (ejecucion) => {
+          this.ejecucion = ejecucion;
+          this.cargando = false;
+          this.avisoRed = '';
+          if (ejecucion.diagramas.length && !this.estaActiva(ejecucion)) {
+            this.cargarDiagramas(ejecucion.diagramas);
+          }
+          if (this.estaActiva(ejecucion)) {
+            this.activo = true;
+          } else if (this.activo) {
+            this.activo = false;
+            if (this.intervaloPolling !== null) {
+              window.clearInterval(this.intervaloPolling);
+              this.intervaloPolling = null;
+            }
+          }
+          this.changeDetector.detectChanges();
+        },
+        error: (error) => {
+          this.cargando = false;
+          this.avisoRed = `${this.obtenerError(error, 'No se pudo consultar la ejecucion.')} Se reintentara automaticamente.`;
+          this.changeDetector.detectChanges();
+        },
+      });
+  }
+
+  private registrarReintentoAlVolverVisible() {
+    const handler = () => {
+      if (document.visibilityState !== 'visible') return;
+      this.consultarEjecucion();
+      if (!this.ejecucion) return;
+      const pendientes = this.ejecucion.diagramas.filter(
+        (diagrama) =>
+          !this.diagramas.some((visible) => visible.nombre === diagrama.nombre) &&
+          !this.diagramasConError.includes(diagrama.nombre),
+      );
+      if (pendientes.length) this.cargarDiagramas(pendientes);
+    };
+    document.addEventListener('visibilitychange', handler);
+    this.destroyRef.onDestroy(() => document.removeEventListener('visibilitychange', handler));
   }
 
   cancelar() {
-    if (!globalThis.confirm('¿Cancelar la publicación? Los artefactos incompletos no se publicarán.')) return;
+    if (
+      !globalThis.confirm('¿Cancelar la publicación? Los artefactos incompletos no se publicarán.')
+    )
+      return;
     this.ejecutarAccion('cancelar');
   }
 
@@ -106,32 +193,11 @@ export class ResultadoC4 implements OnInit, OnDestroy {
     this.ejecutarAccion('reintentar');
   }
 
-  private iniciarPolling() {
-    timer(0, 4000)
-      .pipe(
-        switchMap(() =>
-          this.c4Service.obtenerEjecucion(this.idRepositorio, this.idEjecucion).pipe(
-            catchError((error) => {
-              this.cargando = false;
-              this.avisoRed = `${this.obtenerError(error, 'No se pudo consultar la ejecucion.')} Se reintentara automaticamente.`;
-              return EMPTY;
-            }),
-          ),
-        ),
-        takeWhile((ejecucion) => this.estaActiva(ejecucion), true),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe((ejecucion) => {
-        this.ejecucion = ejecucion;
-        this.cargando = false;
-        this.avisoRed = '';
-        if (ejecucion.diagramas.length && !this.estaActiva(ejecucion)) {
-          this.cargarDiagramas(ejecucion.diagramas);
-        }
-      });
-  }
-
   ngOnDestroy() {
+    if (this.intervaloPolling !== null) {
+      window.clearInterval(this.intervaloPolling);
+      this.intervaloPolling = null;
+    }
     this.urls.forEach((url) => URL.revokeObjectURL(url));
   }
 
@@ -169,8 +235,68 @@ export class ResultadoC4 implements OnInit, OnDestroy {
     return estados[estado] || estado;
   }
 
+  formatearFecha(fecha?: string | null) {
+    if (!fecha) return 'No registrada';
+    const fechaObj = new Date(fecha);
+    if (Number.isNaN(fechaObj.getTime())) return fecha;
+    return fechaObj.toLocaleString('es', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  validacionSuperada(ejecucion: EjecucionC4) {
+    const validacion = ejecucion.validacion;
+    if (!validacion) return true;
+    return !validacion.errores?.length;
+  }
+
   gruposArtefactos(artefactos: ArtefactoC4[]) {
     return agruparArtefactos(artefactos);
+  }
+
+  diagramasPorNivel() {
+    const niveles: {
+      nivel: string;
+      etiqueta: string;
+      plantuml: DiagramaVisible[];
+      mermaid: DiagramaVisible[];
+    }[] = [];
+    const orden = ['context', 'containers', 'components'];
+    for (const diagrama of this.diagramas) {
+      let grupo = niveles.find((item) => item.nivel === diagrama.nivel);
+      if (!grupo) {
+        grupo = {
+          nivel: diagrama.nivel,
+          etiqueta: this.etiquetaNivel(diagrama.nivel),
+          plantuml: [],
+          mermaid: [],
+        };
+        niveles.push(grupo);
+      }
+      if (diagrama.origen === 'mermaid') {
+        grupo.mermaid.push(diagrama);
+      } else {
+        grupo.plantuml.push(diagrama);
+      }
+    }
+    return niveles.sort((a, b) => {
+      const ia = orden.indexOf(a.nivel);
+      const ib = orden.indexOf(b.nivel);
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    });
+  }
+
+  etiquetaNivel(nivel: string) {
+    const etiquetas: Record<string, string> = {
+      context: 'Contexto',
+      containers: 'Contenedores',
+      components: 'Componentes',
+    };
+    return etiquetas[nivel] || nivel;
   }
 
   claseEstado(estado: string) {
@@ -186,6 +312,104 @@ export class ResultadoC4 implements OnInit, OnDestroy {
     if (/\.(zip|tar|gz)\b|archivo/.test(nombre)) return 'comprimido';
     if (/\.(json|ya?ml|dsl|puml|mmd)\b|c[oó]digo|structurizr/.test(nombre)) return 'codigo';
     return 'documento';
+  }
+
+  sinExtension(nombre: string) {
+    const indice = nombre.lastIndexOf('.');
+    return indice > 0 ? nombre.slice(0, indice) : nombre;
+  }
+
+  extension(nombre: string) {
+    const indice = nombre.lastIndexOf('.');
+    return indice >= 0 ? nombre.slice(indice + 1) : '';
+  }
+
+  gruposArtefactosPestanas(artefactos: ArtefactoC4[]) {
+    const grupos = agruparArtefactos(artefactos);
+    if (grupos.length && !grupos.some((grupo) => grupo.clave === this.pestanaArtefactos)) {
+      this.pestanaArtefactos = grupos[0].clave;
+    }
+    return grupos;
+  }
+
+  seleccionarPestanaArtefactos(clave: string) {
+    this.pestanaArtefactos = clave;
+  }
+
+  gruposDiagramasPestanas() {
+    const grupos = this.diagramasPorNivel();
+    if (grupos.length && !grupos.some((grupo) => grupo.nivel === this.pestanaDiagramas)) {
+      this.pestanaDiagramas = grupos[0].nivel;
+    }
+    return grupos;
+  }
+
+  seleccionarPestanaDiagramas(nivel: string) {
+    this.pestanaDiagramas = nivel;
+  }
+
+  abrirDiagrama(diagrama: DiagramaVisible) {
+    this.diagramaAbierto = diagrama;
+    this.zoomModal = 1;
+    this.panX = 0;
+    this.panY = 0;
+  }
+
+  cerrarDiagrama() {
+    this.diagramaAbierto = null;
+    this.arrastrandoModal = false;
+  }
+
+  acercarModal() {
+    this.zoomModal = Math.min(5, this.zoomModal * 1.25);
+    this.aplicarTransformeModal();
+  }
+
+  alejarModal() {
+    this.zoomModal = Math.max(0.25, this.zoomModal / 1.25);
+    this.aplicarTransformeModal();
+  }
+
+  reiniciarZoomModal() {
+    this.zoomModal = 1;
+    this.panX = 0;
+    this.panY = 0;
+    this.aplicarTransformeModal();
+  }
+
+  onRuedaModal(evento: WheelEvent) {
+    evento.preventDefault();
+    const factor = evento.deltaY < 0 ? 1.15 : 1 / 1.15;
+    this.zoomModal = Math.min(5, Math.max(0.25, this.zoomModal * factor));
+    this.aplicarTransformeModal();
+  }
+
+  onPulsarModal(evento: PointerEvent) {
+    if (evento.button !== 0) return;
+    this.arrastrandoModal = true;
+    this.ultimoXModal = evento.clientX;
+    this.ultimoYModal = evento.clientY;
+    const mover = (movimiento: PointerEvent) => {
+      if (!this.arrastrandoModal) return;
+      this.panX += movimiento.clientX - this.ultimoXModal;
+      this.panY += movimiento.clientY - this.ultimoYModal;
+      this.ultimoXModal = movimiento.clientX;
+      this.ultimoYModal = movimiento.clientY;
+      this.aplicarTransformeModal();
+    };
+    const soltar = () => {
+      this.arrastrandoModal = false;
+      window.removeEventListener('pointermove', mover);
+      window.removeEventListener('pointerup', soltar);
+    };
+    window.addEventListener('pointermove', mover);
+    window.addEventListener('pointerup', soltar);
+  }
+
+  private aplicarTransformeModal() {
+    const img = this.imgModal?.nativeElement;
+    if (!img) return;
+    img.style.transform = `translate(${this.panX}px, ${this.panY}px) scale(${this.zoomModal})`;
   }
 
   private cargarDiagramas(diagramas: DiagramaC4[]) {
@@ -220,7 +444,11 @@ export class ResultadoC4 implements OnInit, OnDestroy {
       next: (ejecucion) => {
         this.ejecucion = ejecucion;
         this.accionEnCurso = false;
-        if (accion === 'reintentar') this.iniciarPolling();
+        if (accion === 'reintentar') {
+          if (this.intervaloPolling !== null) window.clearInterval(this.intervaloPolling);
+          this.intervaloPolling = window.setInterval(() => this.consultarEjecucion(), 4000);
+          this.consultarEjecucion();
+        }
       },
       error: (error) => {
         this.accionEnCurso = false;

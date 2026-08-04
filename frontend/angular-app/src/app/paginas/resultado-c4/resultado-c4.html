@@ -1,65 +1,377 @@
 <div class="pagina-resultado">
   <header class="cabecera">
-    <div><p class="etiqueta">Ejecucion C4 / Publicacion</p><h1>Resultado arquitectonico</h1><p class="bajada">Estado de publicacion, control de calidad y entregables de una ejecucion trazable.</p></div>
-    <a routerLink="/historial-proyectos" class="boton-volver"><svg lucideArrowLeft aria-hidden="true"></svg>Volver al historial</a>
+    <div>
+      <p class="etiqueta">Ejecucion C4 / Publicacion</p>
+      <h1>Resultado arquitectonico</h1>
+      <p class="bajada">
+        Estado de publicacion, control de calidad y entregables de una ejecucion trazable.
+      </p>
+    </div>
+    <div class="acciones">
+      <a
+        class="boton-explorar"
+        *ngIf="ejecucion?.estado === 'completado'"
+        [routerLink]="['/c4', idRepositorio, 'ejecuciones', idEjecucion, 'explorador']"
+        ><svg lucideNetwork aria-hidden="true"></svg>Explorar modelo</a
+      >
+      <a routerLink="/historial-proyectos" class="boton-volver"
+        ><svg lucideArrowLeft aria-hidden="true"></svg>Volver al historial</a
+      >
+    </div>
   </header>
 
-  <div *ngIf="cargando" class="tarjeta estado-pagina" role="status"><svg lucideLoaderCircle class="girar" aria-hidden="true"></svg>Consultando la ejecucion...</div>
-  <div *ngIf="avisoRed && !ejecucion" class="mensaje mensaje-error" role="alert">{{ avisoRed }}</div>
+  <div *ngIf="cargando" class="tarjeta estado-pagina" role="status">
+    <svg lucideLoaderCircle class="girar" aria-hidden="true"></svg>Consultando la ejecucion...
+  </div>
+  <div *ngIf="avisoRed && !ejecucion" class="mensaje mensaje-error" role="alert">
+    {{ avisoRed }}
+  </div>
   <div *ngIf="mensajeError" class="mensaje mensaje-error" role="alert">{{ mensajeError }}</div>
 
   <main *ngIf="ejecucion as run" class="contenido">
     <section class="estado-publicacion" aria-labelledby="titulo-estado">
       <div class="estado-editorial">
         <p class="etiqueta">Estado de publicacion</p>
-        <div class="estado-linea"><h2 id="titulo-estado">{{ estadoLegible(run.estado) }}</h2><span class="estado" [ngClass]="claseEstado(run.estado)">{{ run.fase }}</span></div>
-        <p>{{ run.mensaje || 'La ejecucion conserva el modelo, la validacion y sus artefactos asociados.' }}</p>
-        <dl><div><dt>Version</dt><dd>{{ run.version }}</dd></div><div><dt>Artefactos</dt><dd>{{ run.artefactos.length }}</dd></div><div><dt>Diagramas</dt><dd>{{ run.diagramas.length }}</dd></div></dl>
+        <div class="estado-linea">
+          <h2 id="titulo-estado">{{ estadoLegible(run.estado) }}</h2>
+          <span class="estado" [ngClass]="claseEstado(run.estado)">{{ run.fase }}</span>
+        </div>
+        <p>
+          {{
+            run.mensaje ||
+              'La ejecucion conserva el modelo, la validacion y sus artefactos asociados.'
+          }}
+        </p>
+        <dl>
+          <div>
+            <dt>Version</dt>
+            <dd>{{ run.version }}</dd>
+          </div>
+          <div>
+            <dt>Artefactos</dt>
+            <dd>{{ run.artefactos.length }}</dd>
+          </div>
+          <div>
+            <dt>Diagramas</dt>
+            <dd>{{ run.diagramas.length }}</dd>
+          </div>
+        </dl>
       </div>
-      <app-progreso-c4 *ngIf="run.estado !== 'completado'" [ejecucion]="run" [avisoRed]="avisoRed" [accionEnCurso]="accionEnCurso" (cancelar)="cancelar()" (reintentar)="reintentar()" />
+      <app-progreso-c4
+        *ngIf="run.estado !== 'completado'"
+        [ejecucion]="run"
+        [avisoRed]="avisoRed"
+        [accionEnCurso]="accionEnCurso"
+        (cancelar)="cancelar()"
+        (reintentar)="reintentar()"
+      />
+      <div class="publicacion-lista" *ngIf="run.estado === 'completado'">
+        <div class="resumen-publicacion">
+          <span class="icono-exito"><svg lucideCheck aria-hidden="true"></svg></span>
+          <div>
+            <p class="etiqueta">Publicacion</p>
+            <h3>Modelo publicado</h3>
+            <p>Listo para descargarse o explorarse en el modelo C4.</p>
+          </div>
+        </div>
+        <dl class="resumen-metricas">
+          <div>
+            <dt>Publicado</dt>
+            <dd>{{ formatearFecha(run.actualizado_en) }}</dd>
+          </div>
+          <div>
+            <dt>Validacion</dt>
+            <dd>{{ validacionSuperada(run) ? 'Superada' : 'Con observaciones' }}</dd>
+          </div>
+        </dl>
+        <p class="hash-modelo">
+          <span>Hash</span><code>{{ run.hash || 'Sin hash' }}</code>
+        </p>
+      </div>
     </section>
 
     <div *ngIf="run.error" class="mensaje mensaje-error" role="alert">{{ run.error }}</div>
 
     <section class="tarjeta validacion" *ngIf="run.validacion as validacion">
-      <div><p class="etiqueta">Control de calidad</p><h2>Validacion {{ validacion.valida ? 'superada' : 'con errores' }}</h2></div>
+      <div>
+        <p class="etiqueta">Control de calidad</p>
+        <h2>Validacion {{ validacion.valida ? 'superada' : 'con errores' }}</h2>
+      </div>
       <div class="detalle-validacion">
-        <div *ngIf="validacion.errores.length"><strong>Errores</strong><ul><li *ngFor="let error of validacion.errores">{{ error }}</li></ul></div>
-        <div *ngIf="validacion.advertencias.length"><strong>Advertencias</strong><ul><li *ngFor="let advertencia of validacion.advertencias">{{ advertencia }}</li></ul></div>
-        <p *ngIf="!validacion.errores.length && !validacion.advertencias.length">El modelo no presenta observaciones.</p>
+        <div *ngIf="validacion.errores.length">
+          <strong>Errores</strong>
+          <ul>
+            <li *ngFor="let error of validacion.errores">{{ error }}</li>
+          </ul>
+        </div>
+        <div *ngIf="validacion.advertencias.length">
+          <strong>Advertencias</strong>
+          <ul>
+            <li *ngFor="let advertencia of validacion.advertencias">{{ advertencia }}</li>
+          </ul>
+        </div>
+        <p *ngIf="!validacion.errores.length && !validacion.advertencias.length">
+          El modelo no presenta observaciones.
+        </p>
       </div>
     </section>
 
     <section class="tarjeta entregables" aria-labelledby="titulo-artefactos">
-      <div class="titulo-seccion"><div><p class="etiqueta">Entregables</p><h2 id="titulo-artefactos">Artefactos</h2></div><span>{{ run.artefactos.length }} archivos</span></div>
-      <ng-container *ngIf="run.artefactos.length; else sinArtefactos">
-        <div class="grupo-artefactos" *ngFor="let grupo of gruposArtefactos(run.artefactos)">
-          <h3>{{ grupo.titulo }}</h3>
-          <div class="artefactos">
-            <article *ngFor="let artefacto of grupo.artefactos">
-              <div class="icono-archivo" aria-hidden="true">
-                <svg *ngIf="tipoArchivo(artefacto) === 'documento'" lucideFileText></svg><svg *ngIf="tipoArchivo(artefacto) === 'codigo'" lucideFileCode2></svg><svg *ngIf="tipoArchivo(artefacto) === 'comprimido'" lucideFileArchive></svg><svg *ngIf="tipoArchivo(artefacto) === 'imagen'" lucideImage></svg>
-              </div>
-              <div class="nombre-archivo"><strong>{{ artefacto.etiqueta || artefacto.nombre }}</strong><small>{{ artefacto.nombre }}</small></div>
-              <button type="button" class="boton-icono tooltip" data-tooltip="Descargar archivo" [attr.aria-label]="'Descargar ' + artefacto.nombre" [disabled]="descargaActiva === artefacto.nombre" (click)="descargar(artefacto.id, artefacto.nombre)"><svg *ngIf="descargaActiva !== artefacto.nombre" lucideDownload aria-hidden="true"></svg><svg *ngIf="descargaActiva === artefacto.nombre" lucideLoaderCircle class="girar" aria-hidden="true"></svg></button>
-            </article>
-          </div>
+      <div class="titulo-seccion">
+        <div>
+          <p class="etiqueta">Entregables</p>
+          <h2 id="titulo-artefactos">Artefactos</h2>
         </div>
+        <span>{{ run.artefactos.length }} archivos</span>
+      </div>
+      <ng-container *ngIf="run.artefactos.length; else sinArtefactos">
+        <div class="pestanas">
+          <button
+            type="button"
+            class="pestana"
+            *ngFor="let grupo of gruposArtefactosPestanas(run.artefactos)"
+            [class.activa]="pestanaArtefactos === grupo.clave"
+            (click)="seleccionarPestanaArtefactos(grupo.clave)"
+          >
+            {{ grupo.titulo }}
+            <span class="contador">{{ grupo.artefactos.length }}</span>
+          </button>
+        </div>
+        <ng-container *ngFor="let grupo of gruposArtefactosPestanas(run.artefactos)">
+          <div class="panel-pestana" *ngIf="pestanaArtefactos === grupo.clave">
+            <div class="grid-artefactos">
+              <article class="tarjeta-artefacto" *ngFor="let artefacto of grupo.artefactos">
+                <div class="icono-archivo" aria-hidden="true">
+                  <svg *ngIf="tipoArchivo(artefacto) === 'documento'" lucideFileText></svg
+                  ><svg *ngIf="tipoArchivo(artefacto) === 'codigo'" lucideFileCode2></svg
+                  ><svg *ngIf="tipoArchivo(artefacto) === 'comprimido'" lucideFileArchive></svg
+                  ><svg *ngIf="tipoArchivo(artefacto) === 'imagen'" lucideImage></svg>
+                </div>
+                <div class="nombre-archivo">
+                  <strong [title]="artefacto.nombre">{{ sinExtension(artefacto.nombre) }}</strong
+                  ><small class="extension">.{{ extension(artefacto.nombre) }}</small>
+                </div>
+                <button
+                  type="button"
+                  class="boton-icono tooltip"
+                  data-tooltip="Descargar archivo"
+                  [attr.aria-label]="'Descargar ' + artefacto.nombre"
+                  [disabled]="descargaActiva === artefacto.nombre"
+                  (click)="descargar(artefacto.id, artefacto.nombre)"
+                >
+                  <svg
+                    *ngIf="descargaActiva !== artefacto.nombre"
+                    lucideDownload
+                    aria-hidden="true"
+                  ></svg
+                  ><svg
+                    *ngIf="descargaActiva === artefacto.nombre"
+                    lucideLoaderCircle
+                    class="girar"
+                    aria-hidden="true"
+                  ></svg>
+                </button>
+              </article>
+            </div>
+          </div>
+        </ng-container>
       </ng-container>
-      <ng-template #sinArtefactos><div class="estado-vacio" role="status"><svg lucidePackageOpen aria-hidden="true"></svg><strong>Sin artefactos disponibles</strong><p>{{ run.estado === 'completado' ? 'La ejecucion termino sin archivos publicables.' : 'Los archivos apareceran cuando finalice la publicacion.' }}</p></div></ng-template>
+      <ng-template #sinArtefactos
+        ><div class="estado-vacio" role="status">
+          <svg lucidePackageOpen aria-hidden="true"></svg
+          ><strong>Sin artefactos disponibles</strong>
+          <p>
+            {{
+              run.estado === 'completado'
+                ? 'La ejecucion termino sin archivos publicables.'
+                : 'Los archivos apareceran cuando finalice la publicacion.'
+            }}
+          </p>
+        </div></ng-template
+      >
     </section>
 
     <section class="tarjeta galeria" aria-labelledby="titulo-diagramas">
-      <div class="titulo-seccion"><div><p class="etiqueta">Vistas del modelo</p><h2 id="titulo-diagramas">Diagramas C4</h2></div><span aria-live="polite">{{ diagramas.length + diagramasConError.length < run.diagramas.length ? 'Cargando' : 'Cargados' }} {{ diagramas.length + diagramasConError.length }} / {{ run.diagramas.length }}</span></div>
-      <div class="diagramas" *ngIf="run.diagramas.length; else sinDiagramas">
-        <figure *ngFor="let diagrama of diagramas">
-          <a class="lienzo" [href]="diagrama.url" target="_blank" rel="noopener" [attr.aria-label]="'Abrir diagrama ' + diagrama.nivel + ' a tamaño completo'"><img [src]="diagrama.url" [alt]="'Diagrama ' + diagrama.nivel" /><span><svg lucideZoomIn aria-hidden="true"></svg>Abrir vista</span></a>
-          <figcaption><div><strong>{{ diagrama.nivel }}</strong><small>{{ diagrama.nombre }}</small></div><div class="acciones-diagrama"><a class="boton-icono tooltip" data-tooltip="Abrir en otra pestaña" [href]="diagrama.url" target="_blank" rel="noopener" [attr.aria-label]="'Abrir ' + diagrama.nombre"><svg lucideExternalLink aria-hidden="true"></svg></a><button type="button" class="boton-icono tooltip" data-tooltip="Descargar diagrama" [attr.aria-label]="'Descargar ' + diagrama.nombre" (click)="descargar(diagrama.id, diagrama.nombre)"><svg lucideDownload aria-hidden="true"></svg></button></div></figcaption>
-        </figure>
-        <div class="estado-vacio cargando-diagramas" *ngIf="diagramas.length + diagramasConError.length < run.diagramas.length" role="status"><svg lucideLoaderCircle class="girar" aria-hidden="true"></svg><strong>Cargando diagramas protegidos</strong><p>{{ diagramas.length + diagramasConError.length }} de {{ run.diagramas.length }} procesados</p></div>
-        <div class="estado-vacio estado-error-diagrama" *ngFor="let nombre of diagramasConError" role="alert"><svg lucideImage aria-hidden="true"></svg><strong>No se pudo mostrar el diagrama</strong><p>{{ nombre }}</p></div>
+      <div class="titulo-seccion">
+        <div>
+          <p class="etiqueta">Vistas del modelo</p>
+          <h2 id="titulo-diagramas">Diagramas C4</h2>
+        </div>
+        <span aria-live="polite"
+          >{{
+            diagramas.length + diagramasConError.length < run.diagramas.length
+              ? 'Cargando'
+              : 'Cargados'
+          }}
+          {{ diagramas.length + diagramasConError.length }} / {{ run.diagramas.length }}</span
+        >
       </div>
-      <ng-template #sinDiagramas><div class="estado-vacio" role="status"><svg lucideImage aria-hidden="true"></svg><strong>Sin diagramas disponibles</strong><p>{{ run.estado === 'completado' ? 'Esta ejecucion no publico vistas renderizadas.' : 'Las vistas apareceran al completar la validacion.' }}</p></div></ng-template>
+      <div class="diagramas" *ngIf="run.diagramas.length; else sinDiagramas">
+        <div class="pestanas">
+          <button
+            type="button"
+            class="pestana"
+            *ngFor="let grupo of gruposDiagramasPestanas()"
+            [class.activa]="pestanaDiagramas === grupo.nivel"
+            (click)="seleccionarPestanaDiagramas(grupo.nivel)"
+          >
+            {{ grupo.etiqueta }}
+            <span class="contador">{{ grupo.plantuml.length + grupo.mermaid.length }}</span>
+          </button>
+        </div>
+        <ng-container *ngFor="let grupo of gruposDiagramasPestanas()">
+          <div class="panel-pestana" *ngIf="pestanaDiagramas === grupo.nivel">
+            <div class="grid-vistas">
+              <figure *ngFor="let diagrama of [...grupo.plantuml, ...grupo.mermaid]">
+                <a
+                  class="lienzo"
+                  role="button"
+                  tabindex="0"
+                  (click)="abrirDiagrama(diagrama)"
+                  (keydown.enter)="abrirDiagrama(diagrama)"
+                  [attr.aria-label]="
+                    'Abrir ' +
+                    grupo.etiqueta +
+                    ' ' +
+                    (diagrama.origen === 'mermaid' ? 'Mermaid' : 'Structurizr')
+                  "
+                  ><img [src]="diagrama.url" [alt]="'Diagrama ' + grupo.etiqueta" /><span
+                    ><svg lucideZoomIn aria-hidden="true"></svg>Abrir vista</span
+                  ></a
+                >
+                <figcaption>
+                  <div class="nombre-diagrama">
+                    <span
+                      class="chip-origen"
+                      [class.chip-plantuml]="diagrama.origen !== 'mermaid'"
+                      [class.chip-mermaid]="diagrama.origen === 'mermaid'"
+                      >{{ diagrama.origen === 'mermaid' ? 'Mermaid' : 'Structurizr' }}</span
+                    ><strong>{{ grupo.etiqueta }}</strong
+                    ><small class="extension">{{ diagrama.nombre }}</small>
+                  </div>
+                  <div class="acciones-diagrama">
+                    <a
+                      class="boton-icono tooltip"
+                      data-tooltip="Abrir en otra pestaña"
+                      [href]="diagrama.url"
+                      target="_blank"
+                      rel="noopener"
+                      [attr.aria-label]="'Abrir ' + diagrama.nombre"
+                      ><svg lucideExternalLink aria-hidden="true"></svg></a
+                    ><button
+                      type="button"
+                      class="boton-icono tooltip"
+                      data-tooltip="Descargar diagrama"
+                      [attr.aria-label]="'Descargar ' + diagrama.nombre"
+                      (click)="descargar(diagrama.id, diagrama.nombre)"
+                    >
+                      <svg lucideDownload aria-hidden="true"></svg>
+                    </button>
+                  </div>
+                </figcaption>
+              </figure>
+            </div>
+          </div>
+        </ng-container>
+        <div
+          class="estado-vacio cargando-diagramas"
+          *ngIf="diagramas.length + diagramasConError.length < run.diagramas.length"
+          role="status"
+        >
+          <svg lucideLoaderCircle class="girar" aria-hidden="true"></svg
+          ><strong>Cargando diagramas protegidos</strong>
+          <p>
+            {{ diagramas.length + diagramasConError.length }} de
+            {{ run.diagramas.length }} procesados
+          </p>
+        </div>
+        <div
+          class="estado-vacio estado-error-diagrama"
+          *ngFor="let nombre of diagramasConError"
+          role="alert"
+        >
+          <svg lucideImage aria-hidden="true"></svg><strong>No se pudo mostrar el diagrama</strong>
+          <p>{{ nombre }}</p>
+        </div>
+      </div>
+      <ng-template #sinDiagramas
+        ><div class="estado-vacio" role="status">
+          <svg lucideImage aria-hidden="true"></svg><strong>Sin diagramas disponibles</strong>
+          <p>
+            {{
+              run.estado === 'completado'
+                ? 'Esta ejecucion no publico vistas renderizadas.'
+                : 'Las vistas apareceran al completar la validacion.'
+            }}
+          </p>
+        </div></ng-template
+      >
     </section>
   </main>
+</div>
+
+<div class="capa-modal" *ngIf="diagramaAbierto" role="presentation" (click)="cerrarDiagrama()">
+  <div
+    class="modal-diagrama"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="titulo-modal-diagrama"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="cabecera-modal">
+      <div>
+        <h3 id="titulo-modal-diagrama">{{ diagramaAbierto.nombre }}</h3>
+        <p>
+          {{ diagramaAbierto.origen === 'mermaid' ? 'Mermaid' : 'Structurizr' }} ·
+          {{ diagramaAbierto.nivel }}
+        </p>
+      </div>
+      <button type="button" class="boton-cerrar" (click)="cerrarDiagrama()" aria-label="Cerrar">
+        <svg lucideX aria-hidden="true"></svg>
+      </button>
+    </header>
+    <div class="barra-zoom">
+      <button
+        type="button"
+        class="boton-zoom"
+        (click)="alejarModal()"
+        aria-label="Alejar"
+        [disabled]="zoomModal <= 0.25"
+      >
+        −
+      </button>
+      <button
+        type="button"
+        class="boton-zoom"
+        (click)="acercarModal()"
+        aria-label="Acercar"
+        [disabled]="zoomModal >= 5"
+      >
+        +
+      </button>
+      <button type="button" class="boton-zoom texto" (click)="reiniciarZoomModal()">
+        {{ Math.round(zoomModal * 100) }}%
+      </button>
+    </div>
+    <div class="cuerpo-modal" (wheel)="onRuedaModal($event)">
+      <img
+        #imgModal
+        [src]="diagramaAbierto.url"
+        [alt]="diagramaAbierto.nombre"
+        (pointerdown)="onPulsarModal($event)"
+      />
+    </div>
+    <footer class="pie-modal">
+      <a class="boton-externo" [href]="diagramaAbierto.url" target="_blank" rel="noopener"
+        ><svg lucideExternalLink aria-hidden="true"></svg>Abrir en otra pestaña</a
+      >
+      <button
+        type="button"
+        class="boton-descargar"
+        (click)="descargar(diagramaAbierto.id, diagramaAbierto.nombre)"
+      >
+        <svg lucideDownload aria-hidden="true"></svg>Descargar
+      </button>
+    </footer>
+  </div>
 </div>

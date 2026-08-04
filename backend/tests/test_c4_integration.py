@@ -5,11 +5,14 @@ import shutil
 from unittest.mock import patch
 from pathlib import Path
 
+from fastapi import HTTPException
+
 from c4core import CandidateElement, CandidateRelationship, ElementKind, Provenance
 from configuracion import rutas_c4
 from configuracion import rutas_repositorios
 from configuracion.rutas_repositorios import ruta_contenida, token_almacenamiento
 from modelos.c4 import RevisionC4
+from routers import c4 as router_c4
 from servicios.c4_revision import (
     actualizar_contenido_revision,
     candidatos_detectados_contexto,
@@ -201,6 +204,39 @@ class ReviewContractTests(unittest.TestCase):
         self.assertEqual(len(primero), 3)
         self.assertIn(sistema, {item.id for item in primero})
         self.assertTrue(all(item.provenance == Provenance.ANALYST_PROVIDED for item in primero))
+
+
+class ExploradorC4Tests(unittest.TestCase):
+    def _run_explorador(self) -> tuple[dict, dict]:
+        ejecucion = {"id": "ejec-1", "id_repositorio": "repo-1", "estado": "completado", "resultado": {"fase": "completado"}}
+        revision_contenido = {
+            "revision": {"hash": "h1", "version": 1, "elementos": [], "relaciones": []},
+            "candidatos": {"elementos": [], "relaciones": []},
+        }
+        with patch("routers.c4.obtener_proyecto_del_usuario", lambda *a, **k: None), \
+             patch("routers.c4.obtener_cliente_usuario", lambda *a, **k: object()), \
+             patch("routers.c4._obtener_ejecucion", lambda c, r, e: dict(ejecucion)), \
+             patch("routers.c4._obtener_revision", lambda c, e: {"contenido": revision_contenido}), \
+             patch("routers.c4._obtener_tarea_actual", lambda c, e: None):
+            respuesta = respuesta_falsa()
+            resultado = router_c4.obtener_explorador("repo-1", "ejec-1", respuesta, objeto_usuario())
+            return resultado, respuesta.headers
+
+    def test_explorador_devuelve_revision_y_header(self) -> None:
+        resultado, headers = self._run_explorador()
+        self.assertEqual(resultado["ejecucion"]["estado"], "completado")
+        self.assertEqual(resultado["revision"]["hash"], "h1")
+        self.assertNotIn("graph", resultado)
+        self.assertEqual(headers.get("Cache-Control"), "no-store")
+
+def objeto_usuario():
+    from types import SimpleNamespace
+    return SimpleNamespace(id="usuario-1")
+
+
+def respuesta_falsa():
+    from types import SimpleNamespace
+    return SimpleNamespace(headers={})
 
 
 if __name__ == "__main__":

@@ -1,0 +1,25 @@
+<div class="capa" *ngIf="abierto" role="presentation" (click)="cancelar.emit()">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-modal" (click)="$event.stopPropagation()">
+    <header class="cabecera">
+      <span class="icono" [class.aprobar]="decision === 'APROBADO'" [class.rechazar]="decision === 'RECHAZADO'">
+        <svg *ngIf="decision === 'APROBADO'" lucideCheck aria-hidden="true"></svg>
+        <svg *ngIf="decision === 'RECHAZADO'" lucideX aria-hidden="true"></svg>
+      </span>
+      <div>
+        <h3 id="titulo-modal">{{ decision === 'APROBADO' ? 'Aprobar' : 'Rechazar' }} candidato</h3>
+        <p class="nombre">{{ nombre }}</p>
+      </div>
+    </header>
+    <div class="cuerpo">
+      <p class="aviso"><svg lucideAlertTriangle aria-hidden="true"></svg>{{ decision === 'APROBADO'
+        ? 'El candidato se marcara como aprobado y formara parte del modelo al publicar.'
+        : 'El candidato se marcara como rechazado y no formara parte del modelo.' }} La decision se guarda de inmediato.</p>
+    </div>
+    <footer class="pie">
+      <button type="button" class="cancelar" (click)="cancelar.emit()" [disabled]="enProgreso">Cancelar</button>
+      <button type="button" class="confirmar" [class.aprobar]="decision === 'APROBADO'" [class.rechazar]="decision === 'RECHAZADO'" (click)="confirmar.emit()" [disabled]="enProgreso">
+        {{ enProgreso ? 'Guardando...' : (decision === 'APROBADO' ? 'Aprobar' : 'Rechazar') }}
+      </button>
+    </footer>
+  </div>
+</div>

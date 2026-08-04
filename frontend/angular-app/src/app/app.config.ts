@@ -5,6 +5,7 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { routes } from './app.routes';
 import { AutenticacionService } from './servicios/autenticacion.service';
 import { authInterceptor } from './interceptors/auth.interceptor';
+import { cacheInterceptor } from './interceptors/cache.interceptor';
 
 function inicializarAutenticacion() {
   const autenticacionService = inject(AutenticacionService);
@@ -14,7 +15,7 @@ function inicializarAutenticacion() {
 export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(routes),
-    provideHttpClient(withInterceptors([authInterceptor])),
+    provideHttpClient(withInterceptors([authInterceptor, cacheInterceptor])),
     {
       provide: APP_INITIALIZER,
       multi: true,

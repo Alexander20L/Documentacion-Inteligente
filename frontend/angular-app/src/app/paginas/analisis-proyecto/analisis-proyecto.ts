@@ -12,12 +12,13 @@ import {
   LucideTrash2,
   LucideUpload,
 } from '@lucide/angular';
-import { EMPTY, timer } from 'rxjs';
-import { catchError, switchMap } from 'rxjs/operators';
+import { EMPTY } from 'rxjs';
+import { catchError, exhaustMap, switchMap } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { EjecucionC4 } from '../../modelos/c4.model';
 import { C4Service } from '../../servicios/c4.service';
 import { RepositoriosService } from '../../servicios/repositorios.service';
+import { pollingReanudable } from '../../servicios/polling-reanudable';
 import { ProgresoC4 } from '../../componentes/progreso-c4/progreso-c4';
 
 type FilaContexto = FormGroup<{
@@ -176,9 +177,9 @@ export class AnalisisProyecto {
   private iniciarPolling(inicial: EjecucionC4) {
     this.ejecucion = inicial;
     this.mensaje = inicial.mensaje || 'Analizando el repositorio...';
-    timer(0, 4000)
+    pollingReanudable(4000)
       .pipe(
-        switchMap(() =>
+        exhaustMap(() =>
           this.c4Service.obtenerEjecucion(inicial.id_repositorio, inicial.id).pipe(
             catchError((error) => {
               this.avisoRed = `${this.obtenerError(error, 'No se pudo consultar la ejecucion.')} Se reintentara automaticamente.`;

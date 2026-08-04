@@ -3,8 +3,9 @@ import { ChangeDetectorRef, Component, DestroyRef, inject, OnInit } from '@angul
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { EMPTY, timer } from 'rxjs';
+import { EMPTY } from 'rxjs';
 import { catchError, exhaustMap, takeWhile, timeout } from 'rxjs/operators';
+import { pollingReanudable } from '../../servicios/polling-reanudable';
 import {
   DecisionCandidatoC4,
   ElementoC4,
@@ -28,6 +29,7 @@ import {
   LucideFileSearch,
   LucideFilter,
   LucideGitBranch,
+  LucideNetwork,
   LucideRotateCcw,
   LucideSave,
   LucideSparkles,
@@ -62,6 +64,7 @@ interface CambioLoteRevision {
     LucideFileSearch,
     LucideFilter,
     LucideGitBranch,
+    LucideNetwork,
     LucideRotateCcw,
     LucideSave,
     LucideSparkles,
@@ -396,7 +399,7 @@ export class RevisionC4 implements OnInit {
   }
 
   private consultarEjecucion() {
-    timer(0, 4000)
+    pollingReanudable(4000)
       .pipe(
         exhaustMap(() =>
           this.c4Service.obtenerEjecucion(this.idRepositorio, this.idEjecucion).pipe(

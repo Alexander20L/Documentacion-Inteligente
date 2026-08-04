@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import FileResponse
 
 from c4core import EvidenceRecord, assemble_canonical_model
@@ -182,7 +182,8 @@ def crear_ejecucion(
 
 
 @router.get("/{id_ejecucion}", response_model=EjecucionC4)
-def obtener_ejecucion(id_repositorio: str, id_ejecucion: str, usuario: UsuarioAutenticado = Depends(obtener_usuario_actual)):
+def obtener_ejecucion(id_repositorio: str, id_ejecucion: str, response: Response, usuario: UsuarioAutenticado = Depends(obtener_usuario_actual)):
+    response.headers["Cache-Control"] = "no-store"
     obtener_proyecto_del_usuario(id_repositorio, usuario)
     cliente = obtener_cliente_usuario(usuario)
     ejecucion = _obtener_ejecucion(cliente, id_repositorio, id_ejecucion)
@@ -215,11 +216,29 @@ def reintentar_ejecucion(id_repositorio: str, id_ejecucion: str, usuario: Usuari
 
 
 @router.get("/{id_ejecucion}/revision", response_model=RevisionC4)
-def obtener_revision(id_repositorio: str, id_ejecucion: str, usuario: UsuarioAutenticado = Depends(obtener_usuario_actual)):
+def obtener_revision(id_repositorio: str, id_ejecucion: str, response: Response, usuario: UsuarioAutenticado = Depends(obtener_usuario_actual)):
+    response.headers["Cache-Control"] = "no-store"
     obtener_proyecto_del_usuario(id_repositorio, usuario)
     cliente = obtener_cliente_usuario(usuario)
     _obtener_ejecucion(cliente, id_repositorio, id_ejecucion)
     return revision_publica(_obtener_revision(cliente, id_ejecucion).get("contenido") or {})
+
+
+@router.get("/{id_ejecucion}/explorador")
+def obtener_explorador(id_repositorio: str, id_ejecucion: str, response: Response, usuario: UsuarioAutenticado = Depends(obtener_usuario_actual)):
+    response.headers["Cache-Control"] = "no-store"
+    obtener_proyecto_del_usuario(id_repositorio, usuario)
+    cliente = obtener_cliente_usuario(usuario)
+    ejecucion = _obtener_ejecucion(cliente, id_repositorio, id_ejecucion)
+    revision = None
+    try:
+        revision = revision_publica(_obtener_revision(cliente, id_ejecucion).get("contenido") or {})
+    except HTTPException:
+        revision = None
+    return {
+        "ejecucion": serializar_ejecucion(ejecucion, _obtener_tarea_actual(cliente, id_ejecucion)),
+        "revision": revision,
+    }
 
 
 @router.put("/{id_ejecucion}/revision", response_model=RevisionC4)

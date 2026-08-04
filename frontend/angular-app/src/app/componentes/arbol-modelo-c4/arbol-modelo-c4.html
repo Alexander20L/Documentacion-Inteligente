@@ -1,0 +1,50 @@
+<nav class="arbol" aria-label="Modelo C4">
+  <ul>
+    <li *ngFor="let nodo of arbol" class="nodo">
+      <div class="fila" [class.activo]="nodo.elemento.id === seleccionadoId" (click)="click(nodo)">
+        <button
+          type="button"
+          class="toggle"
+          *ngIf="nodo.hijos.length"
+          (click)="alternar(nodo); $event.stopPropagation()"
+          [attr.aria-expanded]="nodo.expandido"
+        >
+          <svg *ngIf="nodo.expandido" lucideChevronDown aria-hidden="true"></svg>
+          <svg *ngIf="!nodo.expandido" lucideChevronRight aria-hidden="true"></svg>
+        </button>
+        <span class="marca" [class]="icono(nodo.elemento)">
+          <svg *ngIf="nodo.elemento.tipo === 'container'" lucideBox aria-hidden="true"></svg>
+          <svg *ngIf="nodo.elemento.tipo === 'component'" lucideLayers aria-hidden="true"></svg>
+          <svg *ngIf="nodo.elemento.tipo === 'person'" lucideUser aria-hidden="true"></svg>
+          <svg
+            *ngIf="!['container', 'component', 'person'].includes(nodo.elemento.tipo)"
+            lucideGlobe
+            aria-hidden="true"
+          ></svg>
+        </span>
+        <span class="nombre">{{ nodo.elemento.nombre }}</span>
+      </div>
+      <ul *ngIf="nodo.hijos.length && nodo.expandido">
+        <li *ngFor="let hijo of nodo.hijos" class="nodo hijo">
+          <div
+            class="fila"
+            [class.activo]="hijo.elemento.id === seleccionadoId"
+            (click)="click(hijo)"
+          >
+            <span class="marca" [class]="icono(hijo.elemento)">
+              <svg *ngIf="hijo.elemento.tipo === 'container'" lucideBox aria-hidden="true"></svg>
+              <svg *ngIf="hijo.elemento.tipo === 'component'" lucideLayers aria-hidden="true"></svg>
+              <svg *ngIf="hijo.elemento.tipo === 'person'" lucideUser aria-hidden="true"></svg>
+              <svg
+                *ngIf="!['container', 'component', 'person'].includes(hijo.elemento.tipo)"
+                lucideGlobe
+                aria-hidden="true"
+              ></svg>
+            </span>
+            <span class="nombre">{{ hijo.elemento.nombre }}</span>
+          </div>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</nav>

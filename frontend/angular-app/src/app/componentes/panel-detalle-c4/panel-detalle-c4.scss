@@ -1,0 +1,236 @@
+:host {
+  display: block;
+  height: 100%;
+  overflow-y: auto;
+}
+.panel-detalle {
+  padding: 18px;
+}
+.cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.tipo {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #e8edf2;
+  color: #405064;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.estado {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #e8dfc7;
+  color: #6b5315;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+h3 {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+  color: var(--ink-900);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.padre,
+.derivacion,
+.marcado,
+.solo-lectura {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 6px 0;
+  color: var(--ink-600);
+  font-size: 0.8rem;
+}
+.marcado {
+  color: #8a5a12;
+  font-weight: 700;
+}
+.solo-lectura {
+  color: #5a6472;
+  font-style: italic;
+}
+.descripcion {
+  margin: 8px 0;
+  color: var(--ink-700);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.evidencias {
+  margin: 12px 0;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+.evidencias summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 42px;
+  padding: 0 12px;
+  color: #405064;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  cursor: pointer;
+  list-style: none;
+}
+.evidencias summary small {
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 99px;
+  background: #e8edf2;
+}
+.evidencia {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-top: 1px solid #e3e6e8;
+}
+.evidencia code {
+  color: #245d91;
+  overflow-wrap: anywhere;
+  font-size: 0.78rem;
+}
+.evidencia span {
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+.evidencia small {
+  color: #8a93a0;
+  font-size: 0.72rem;
+}
+.decisiones {
+  margin-top: 16px;
+  border: none;
+  padding: 0;
+}
+.decisiones legend {
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: #405064;
+  margin-bottom: 8px;
+}
+.decisiones {
+  display: flex;
+  gap: 10px;
+}
+.aprobar,
+.rechazar {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 16px;
+  border: none;
+  border-radius: 9px;
+  font-weight: 800;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.aprobar {
+  background: #1e7a46;
+  color: #fff;
+}
+.aprobar:disabled {
+  background: #a8d3b8;
+  cursor: default;
+}
+.rechazar {
+  background: #b23a48;
+  color: #fff;
+}
+.rechazar:disabled {
+  background: #e3b3b8;
+  cursor: default;
+}
+.titulo-seccion {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 18px 0 8px;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: #405064;
+}
+.titulo-seccion svg {
+  color: #315c89;
+}
+.grupo-diagramas {
+  margin-bottom: 10px;
+}
+.nivel {
+  display: inline-block;
+  margin-bottom: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #e3ecf3;
+  color: #245d91;
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.grupo-diagramas ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.grupo-diagramas li {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+.nombre-diagrama {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.76rem;
+  color: var(--ink-700);
+}
+.diagrama-item {
+  cursor: default;
+}
+.ver {
+  padding: 5px 12px;
+  border: none;
+  border-radius: 7px;
+  background: #116466;
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.72rem;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.ver:hover {
+  filter: brightness(1.1);
+}
+.vacío {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  padding: 40px 20px;
+  color: #8a93a0;
+  text-align: center;
+}
+.vacío p {
+  max-width: 260px;
+  font-size: 0.85rem;
+}

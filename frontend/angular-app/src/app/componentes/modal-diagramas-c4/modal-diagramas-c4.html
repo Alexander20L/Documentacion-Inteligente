@@ -1,0 +1,53 @@
+<div class="capa" *ngIf="abierto" role="presentation" (click)="cerrarModal()">
+  <div
+    class="modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="titulo-diagramas"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="cabecera">
+      <div class="titulo">
+        <h3 id="titulo-diagramas">{{ titulo }}</h3>
+        <p>Diagramas oficiales del modelo</p>
+      </div>
+      <button type="button" class="cerrar" (click)="cerrarModal()" aria-label="Cerrar">
+        <svg lucideX aria-hidden="true"></svg>
+      </button>
+    </header>
+
+    <nav class="selector-nivel" *ngIf="nivelesPresentes.length" aria-label="Nivel del diagrama">
+      <button
+        type="button"
+        *ngFor="let nivel of nivelesPresentes"
+        [class.activo]="nivel === nivelActual"
+        (click)="cambiarNivel(nivel)"
+      >
+        {{ etiquetaNivel(nivel) }}
+      </button>
+    </nav>
+
+    <div class="cuerpo">
+      <div class="paginacion" *ngIf="diagramasDelNivel.length > 1">
+        <button type="button" class="navegar" (click)="anterior()" aria-label="Diagrama anterior">
+          <svg lucideChevronLeft aria-hidden="true"></svg>
+        </button>
+        <span class="contador">{{ indiceActual + 1 }} / {{ diagramasDelNivel.length }}</span>
+        <button type="button" class="navegar" (click)="siguiente()" aria-label="Diagrama siguiente">
+          <svg lucideChevronRight aria-hidden="true"></svg>
+        </button>
+      </div>
+
+      <app-lienzo-diagrama-c4
+        *ngIf="diagramaActual"
+        [svgTexto]="diagramaActual.svg"
+        [elementos]="elementos"
+        [seleccionadoId]="seleccionadoId"
+        [titulo]="diagramaActual.nombre"
+      ></app-lienzo-diagrama-c4>
+      <div class="vacio" *ngIf="!diagramaActual">
+        <p>Este elemento no tiene diagramas oficiales en este nivel.</p>
+      </div>
+    </div>
+  </div>
+</div>

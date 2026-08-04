@@ -1,0 +1,82 @@
+<div class="explorador">
+  <header class="barra-superior">
+    <a
+      class="volver"
+      [routerLink]="['/c4', idRepositorio, 'ejecuciones', idEjecucion, 'resultado']"
+    >
+      <svg lucideArrowLeft aria-hidden="true"></svg>Volver al resultado
+    </a>
+    <div class="titulo">
+      <h1>{{ nombreSistema }}</h1>
+      <p>Explora el sistema, sus contenedores y componentes, y decide cada inferencia.</p>
+    </div>
+    <span class="fase" [class.revision]="puedeDecidir">
+      {{ puedeDecidir ? 'En revision - puedes decidir' : 'Solo lectura' }}
+    </span>
+  </header>
+
+  <div class="cuerpo">
+    <aside class="panel-arbol">
+      <div class="panel-titulo">
+        <svg lucideBox aria-hidden="true"></svg>
+        <strong>Modelo</strong>
+      </div>
+      <app-arbol-modelo-c4
+        [elementos]="elementos"
+        [seleccionadoId]="seleccionadoId"
+        (seleccionar)="seleccionar($event)"
+      ></app-arbol-modelo-c4>
+    </aside>
+
+    <main class="panel-grafo">
+      <div class="contenedor-grafo">
+        <app-grafo-modelo-unificado-c4
+          *ngIf="elementos.length"
+          [elementos]="elementos"
+          [relaciones]="relaciones"
+          [seleccionadoId]="seleccionadoId"
+          (seleccionar)="seleccionar($event)"
+        ></app-grafo-modelo-unificado-c4>
+      </div>
+    </main>
+
+    <aside class="panel-detalle">
+      <app-panel-detalle-c4
+        [elemento]="seleccionado"
+        [relacion]="relacionSeleccionada"
+        [puedeDecidir]="puedeDecidir"
+        [nombrePadre]="
+          seleccionado && seleccionado.padre_id ? nombreElemento(seleccionado.padre_id) : ''
+        "
+        [diagramas]="diagramasDelElemento(seleccionado)"
+        (decidir)="solicitarDecision($event)"
+        (verDiagrama)="abrirDiagrama($event)"
+      ></app-panel-detalle-c4>
+    </aside>
+  </div>
+
+  <div class="estado-carga" *ngIf="cargando">
+    <svg lucideLoaderCircle class="girar" aria-hidden="true"></svg>Cargando explorador...
+  </div>
+  <p class="aviso" *ngIf="avisoRed">{{ avisoRed }}</p>
+  <p class="error" *ngIf="mensajeError">{{ mensajeError }}</p>
+</div>
+
+<app-modal-decision-c4
+  [abierto]="modalAbierto"
+  [nombre]="seleccionado?.nombre ?? relacionSeleccionada?.nombre ?? ''"
+  [decision]="decisionPendiente"
+  [enProgreso]="guardando"
+  (confirmar)="confirmarDecision()"
+  (cancelar)="cancelarDecision()"
+></app-modal-decision-c4>
+
+<app-modal-diagramas-c4
+  [abierto]="modalDiagramasAbierto"
+  [titulo]="seleccionado?.nombre ?? 'Diagramas'"
+  [elementos]="elementos"
+  [seleccionadoId]="seleccionadoId"
+  [diagramas]="diagramasModal"
+  [diagramaInicial]="diagramaInicialModal"
+  (cerrar)="cerrarDiagramas()"
+></app-modal-diagramas-c4>

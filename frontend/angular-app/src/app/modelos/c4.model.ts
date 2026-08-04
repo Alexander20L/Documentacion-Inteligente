@@ -1,7 +1,12 @@
 export type EstadoEjecucionC4 = 'pendiente' | 'procesando' | 'completado' | 'fallido' | 'cancelado';
 
 export type FaseEjecucionC4 =
-  'ingesta' | 'descubrimiento' | 'revision' | 'generacion' | 'validacion' | 'completado';
+  | 'ingesta'
+  | 'descubrimiento'
+  | 'revision'
+  | 'generacion'
+  | 'validacion'
+  | 'completado';
 
 export type DecisionCandidatoC4 = 'PENDIENTE' | 'APROBADO' | 'RECHAZADO';
 
@@ -121,6 +126,11 @@ export interface RevisionC4 {
 
 export interface GuardarRevisionC4 extends RevisionC4 {}
 
+export interface ExploradorC4 {
+  ejecucion: EjecucionC4;
+  revision: RevisionC4 | null;
+}
+
 export interface ValidacionC4 {
   valida: boolean;
   errores: string[];
@@ -139,6 +149,7 @@ export interface DiagramaC4 {
   nombre: string;
   nivel: string;
   formato?: string;
+  origen?: string | null;
 }
 
 export interface TareaActualC4 {

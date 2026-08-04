@@ -1,0 +1,106 @@
+<aside class="panel-detalle">
+  <ng-container *ngIf="elemento; else sinSeleccion">
+    <header class="cabecera">
+      <span class="tipo">{{ etiquetaTipo(elemento.tipo) }}</span>
+      <span class="estado">{{ elemento.decision }}</span>
+    </header>
+    <h3>{{ elemento.nombre }}</h3>
+    <p class="padre" *ngIf="elemento.padre_id">
+      <svg lucideMoveUpRight aria-hidden="true"></svg>Pertenece a {{ nombrePadre }}
+    </p>
+    <p class="marcado" *ngIf="elemento.marcado" role="note">
+      <svg lucideAlertTriangle aria-hidden="true"></svg>{{ etiquetaMarcado(elemento.marcado) }}
+    </p>
+    <p class="descripcion">{{ elemento.descripcion }}</p>
+
+    <details class="evidencias" *ngIf="elemento.evidencias?.length">
+      <summary>
+        <svg lucideFileSearch aria-hidden="true"></svg>Evidencia
+        <small>{{ elemento.evidencias?.length }}</small>
+      </summary>
+      <div class="evidencia" *ngFor="let evidencia of elemento.evidencias">
+        <code>{{ ubicacion(evidencia) }}</code>
+        <span *ngIf="evidencia.simbolo">{{ evidencia.simbolo }}</span>
+        <small
+          >{{ evidencia.modulo || 'Sin modulo' }} ·
+          {{ evidencia.agente || 'Agente no indicado' }}</small
+        >
+      </div>
+    </details>
+
+    <section class="diagramas" *ngIf="diagramas.length">
+      <h4 class="titulo-seccion"><svg lucideImage aria-hidden="true"></svg>Diagramas</h4>
+      <div class="grupo-diagramas" *ngFor="let grupo of diagramasPorNivel()">
+        <span class="nivel">{{ etiquetaNivelDiagrama(grupo.nivel) }}</span>
+        <ul>
+          <li *ngFor="let diagrama of grupo.diagramas" class="diagrama-item">
+            <span class="nombre-diagrama" [title]="diagrama.nombre">{{
+              nombreDiagrama(diagrama)
+            }}</span>
+            <button type="button" class="ver" (click)="verDiagrama.emit(diagrama)">Ver</button>
+          </li>
+        </ul>
+      </div>
+    </section>
+  </ng-container>
+
+  <ng-container *ngIf="relacion">
+    <header class="cabecera">
+      <span class="tipo">Relacion</span>
+      <span class="estado">{{ relacion.decision }}</span>
+    </header>
+    <h3><svg lucideGitBranch aria-hidden="true"></svg>{{ relacion.nombre }}</h3>
+    <p class="derivacion">
+      <svg lucideSparkles aria-hidden="true"></svg>{{ etiquetaDerivacion(relacion.derivacion) }}
+    </p>
+    <p class="marcado" *ngIf="relacion.marcado" role="note">
+      <svg lucideAlertTriangle aria-hidden="true"></svg>{{ etiquetaMarcado(relacion.marcado) }}
+    </p>
+    <p class="descripcion">{{ relacion.descripcion }}</p>
+    <details class="evidencias" *ngIf="relacion.evidencias?.length">
+      <summary>
+        <svg lucideFileSearch aria-hidden="true"></svg>Evidencia
+        <small>{{ relacion.evidencias?.length }}</small>
+      </summary>
+      <div class="evidencia" *ngFor="let evidencia of relacion.evidencias">
+        <code>{{ ubicacion(evidencia) }}</code>
+        <span *ngIf="evidencia.simbolo">{{ evidencia.simbolo }}</span>
+        <small
+          >{{ evidencia.modulo || 'Sin modulo' }} ·
+          {{ evidencia.agente || 'Agente no indicado' }}</small
+        >
+      </div>
+    </details>
+  </ng-container>
+
+  <fieldset class="decisiones" *ngIf="puedeDecidir && (elemento?.inferido || relacion?.inferido)">
+    <legend>Decision</legend>
+    <button
+      type="button"
+      class="aprobar"
+      [disabled]="(elemento?.decision || relacion?.decision) === 'APROBADO'"
+      (click)="decidir.emit('APROBADO')"
+    >
+      <svg lucideCheck aria-hidden="true"></svg>Aprobar
+    </button>
+    <button
+      type="button"
+      class="rechazar"
+      [disabled]="(elemento?.decision || relacion?.decision) === 'RECHAZADO'"
+      (click)="decidir.emit('RECHAZADO')"
+    >
+      <svg lucideX aria-hidden="true"></svg>Rechazar
+    </button>
+  </fieldset>
+
+  <p class="solo-lectura" *ngIf="!puedeDecidir && (elemento?.inferido || relacion?.inferido)">
+    <svg lucideCircle aria-hidden="true"></svg>Modelo publicado: solo lectura
+  </p>
+
+  <ng-template #sinSeleccion>
+    <div class="vacío">
+      <svg lucideCircle aria-hidden="true"></svg>
+      <p>Selecciona un elemento o relacion en el arbol o en el grafo para ver su detalle.</p>
+    </div>
+  </ng-template>
+</aside>

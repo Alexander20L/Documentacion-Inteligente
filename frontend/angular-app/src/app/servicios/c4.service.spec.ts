@@ -48,4 +48,15 @@ describe('C4Service', () => {
     expect(request.request.responseType).toBe('blob');
     request.flush(new Blob());
   });
+
+  it('requests artifacts as text for interactive canvases', () => {
+    service.descargarArtefactoSvg('repo-1', 'run-1', 'artifact-1').subscribe();
+
+    const request = http.expectOne(
+      `${API_BASE_URL}/repositorios/repo-1/c4/ejecuciones/run-1/artefactos/artifact-1`,
+    );
+    expect(request.request.method).toBe('GET');
+    expect(request.request.responseType).toBe('text');
+    request.flush('<svg></svg>');
+  });
 });

@@ -1,0 +1,118 @@
+.capa {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(8, 20, 30, 0.55);
+  z-index: 60;
+  padding: 24px;
+}
+.modal {
+  display: flex;
+  flex-direction: column;
+  width: min(1120px, 100%);
+  height: min(780px, 92vh);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+.cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 20px;
+  background: var(--surface-muted);
+}
+.titulo h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--ink-900);
+}
+.titulo p {
+  margin: 3px 0 0;
+  font-size: 0.78rem;
+  color: var(--ink-600);
+}
+.cerrar {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ink-600);
+  cursor: pointer;
+}
+.cerrar:hover {
+  background: #e3e8ed;
+}
+.selector-nivel {
+  display: flex;
+  gap: 6px;
+  padding: 12px 20px 0;
+}
+.selector-nivel button {
+  padding: 7px 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink-600);
+  font-weight: 800;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.selector-nivel button:hover {
+  background: #eef1f4;
+}
+.selector-nivel button.activo {
+  background: #116466;
+  color: #fff;
+  border-color: #116466;
+}
+.cuerpo {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 20px 20px;
+}
+.paginacion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding-bottom: 10px;
+}
+.navegar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: #405064;
+  cursor: pointer;
+}
+.navegar:hover {
+  background: #eef1f4;
+}
+.contador {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #5a6472;
+}
+.cuerpo app-lienzo-diagrama-c4 {
+  display: block;
+  flex: 1;
+  min-height: 0;
+}
+.vacio {
+  display: grid;
+  place-items: center;
+  flex: 1;
+  color: #8a93a0;
+}
